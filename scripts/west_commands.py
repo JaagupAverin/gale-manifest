@@ -6,6 +6,7 @@ import textwrap
 from pathlib import Path
 from typing import Any, override
 
+from west import log
 from west.commands import WestCommand
 
 file_dir = Path(__file__).parent.parent
@@ -129,7 +130,7 @@ class GalePush(WestCommand):
             cmd = f"west forall -g gale -c '{subcmd}'"
             subprocess.check_call(cmd, shell=True)  # noqa: S602
             # Also repeat command for this (manifest) repository:
-            self.inf(f"Running {subcmd} in {file_dir}")
+            log.inf(f"Running {subcmd} in {file_dir}")
             subprocess.check_call(subcmd, shell=True, cwd=file_dir)  # noqa: S602
         except subprocess.CalledProcessError as e:
             self.wrn(f"Failed to commit and push changes: {e}")
