@@ -24,6 +24,7 @@ west update
 ```
 
 #### Alternatively, use the following to initialize only a specific application:
+_Note that this can be reconfigured at any time and will simply affect which repositories are tracked by west._
 
 ```bash
 west config manifest.group-filter +sensor
