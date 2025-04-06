@@ -12,21 +12,30 @@ manifest:
     remote: origin
     revision: main
 
+  # Disable all groups by default as everything is opt-in using `west config`
+  # The `gale` group is only referenced by some custom west commands and indicates that the repository
+  # contains user code (as opposed to third-party).
+  group-filter: [-sensor, -hmi, -gale, -hal]
   projects:
     - name: gale-sensor-app
       path: gale_sensor_app
-      groups: [gale, sensor]
+      groups: [sensor, gale]
 
     - name: gale-hmi-app
       path: gale_hmi_app
-      groups: [gale, hmi]
+      groups: [hmi, gale]
 
     - name: gale-shared
       path: gale_shared
-      groups: [gale, sensor, hmi]
+      groups: [sensor, hmi, gale]
 
     - name: gale-zephyr
       path: zephyr
-      import:
-        name-whitelist:
-          - hal_espressif
+      west-commands: scripts/west-commands.yml
+      groups: [sensor, hmi]
+
+    - name: hal_espressif
+      revision: dbc28ad4c1bdcdb25e79ca225cb5528a75d8dc91
+      path: modules/hal/espressif
+      west-commands: west/west-commands.yml
+      groups: [sensor, hmi, hal]

@@ -14,36 +14,44 @@ A Zephyr demo that shows how to set up a multi-application project with a shared
 
 ## Quickstart:
 
-Clone repositories:
+### Clone all repositories:
 
 ```bash
 mkdir gale && cd gale
 west init -m https://github.com/JaagupAverin/gale-manifest
+west config manifest.group-filter +sensor,+hmi
 west update
 ```
 
-Install dependencies:
+#### Alternatively, use the following to initialize only a specific application:
+
+```bash
+west config manifest.group-filter +sensor
+west update
+```
+
+### Install dependencies:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install west ruff basedpyright
+python -m pip install west
 west packages pip --install
 west sdk install
 ```
 
-Commands for development:
+### Commands for development:
 
 ```bash
 # Check status of all repositories:
 west status
 
-# Sync all repositories with origin (rebase recommended to not detach from current):
+# Sync all repositories with origin (rebase recommended to not detach from current branch):
 west update --rebase
 
 # Checkout 'main' in all gale repositories:
 west gale-checkout main
 
-# Commit and push local changes to origin in all gale repositories:
+# Commit and push local changes in all gale repositories:
 west gale-push "Updated stuff."
 ```
