@@ -13,6 +13,4 @@ manifest:
 
   projects:
     - name: gale-sensor-app
-      import: true
     - name: gale-bluetooth-app
-      import: true
