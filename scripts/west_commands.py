@@ -6,7 +6,6 @@ import textwrap
 from pathlib import Path
 from typing import Any, override
 
-from west import log
 from west.commands import WestCommand
 
 file_dir = Path(__file__).parent.parent
@@ -43,7 +42,7 @@ class GaleInstall(WestCommand):
         if not requirements_path.exists():
             self.die(f"requirements.txt not found at {requirements_path}")
         else:
-            self.inf(f"Installing requirements from {requirements_path}...")
+            self.inf(f"Installing requirements from {requirements_path}...", colorize=True)
             try:
                 cmd: str = f"{sys.executable} -m pip install -r {requirements_path}"
                 subprocess.check_call(cmd, shell=True)  # noqa: S602
@@ -81,7 +80,7 @@ class GaleCheckout(WestCommand):
     @override
     def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
         branch = args.branch
-        self.inf(f"Checking out branch '{branch}' in all gale repositories...")
+        self.inf(f"Checking out branch '{branch}' in all gale repositories...", colorize=True)
 
         try:
             subcmd = f"git fetch && git switch {branch} || git switch --track origin/{branch}"
@@ -121,7 +120,7 @@ class GalePush(WestCommand):
 
     @override
     def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
-        self.inf("Committing and pushing changes in all gale repositories...")
+        self.inf("Committing and pushing changes in all gale repositories...", colorize=True)
 
         try:
             subcmd = (
@@ -130,7 +129,7 @@ class GalePush(WestCommand):
             cmd = f"west forall -g gale -c '{subcmd}'"
             subprocess.check_call(cmd, shell=True)  # noqa: S602
             # Also repeat command for this (manifest) repository:
-            log.inf(f"Running {subcmd} in {file_dir}")
+            self.inf(f"Running {subcmd} in {file_dir}", colorize=True)
             subprocess.check_call(subcmd, shell=True, cwd=file_dir)  # noqa: S602
         except subprocess.CalledProcessError as e:
             self.wrn(f"Failed to commit and push changes: {e}")
