@@ -32,9 +32,18 @@ west packages pip --install
 west sdk install
 ```
 
-Sync repositories:
+Commands for development:
 
 ```bash
-# Rebase option is recommended to keep all application repositories pointing to a valid branch.
+# Check status of all repositories:
+west status
+
+# Sync all repositories with origin (rebase recommended to not detach from current):
 west update --rebase
+
+# Checkout 'main' in all gale repositories:
+west gale-checkout main
+
+# Commit and push local changes to origin in all gale repositories:
+west gale-push "Updated stuff."
 ```
