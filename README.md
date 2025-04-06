@@ -4,7 +4,7 @@ A Zephyr demo that shows how to set up a multi-application project with a shared
 
 ## Repositories
 
-- [Manifest](https://github.com/JaagupAverin/gale-manifest) - west manifest for initializing the workspace
+- [Manifest](https://github.com/JaagupAverin/gale-manifest) - west manifest and scripts for managing the Gale workspace
 - [Sensor app](https://github.com/JaagupAverin/gale-sensor-app) - application demonstrating basic sensor usage
 - [HMI app](https://github.com/JaagupAverin/gale-hmi-app) - application demonstrating basic HMI peripheral usage
 - [Shared](https://github.com/JaagupAverin/gale-shared) - common code and scripts shared between applications
