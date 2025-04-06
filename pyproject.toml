@@ -1,0 +1,75 @@
+[project]
+name = "gale"
+dynamic = ["version"]
+description = "Manifest repo for initializing and managing the entire Gale workspace."
+authors = [{ name = "Jaagup Averin", email = "jaagup.averin@gmail.com" }]
+readme = "README.md"
+keywords = ["zephyr", "demo", "example", "workspace"]
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+urls.repository = "https://github.com/JaagupAverin/gale-manifest"
+urls.homepage = "https://github.com/JaagupAverin/gale-manifest"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "west>=0.14.0",
+    "click==8.1.*",
+    "typer==0.15.*",
+    "structlog==25.3.*",
+    "ruff==0.8.1",
+    "basedpyright==1.28.*",
+    "python-dotenv==1.1.*",
+    "pyelftools>=0.29",
+    "pyyaml>=6.0",
+    "pykwalify>=1.8.0",
+    "canopen>=2.3.0",
+    "packaging>=25.0",
+    "progress>=1.6",
+    "patool>=4.0.1",
+    "psutil>=5.6.6",
+    "pylink-square>=1.6.0",
+    "pyserial>=3.5",
+    "requests>=2.32.0",
+    "semver>=3.0.4",
+    "tqdm>=4.67.1",
+    "anytree>=2.13.0",
+    "intelhex>=2.3.0",
+    "windows-curses>=2.4.1 ; sys_platform == 'win32'",
+    "colorama>=0.4.6",
+    "ply>=3.10",
+    "gcovr>=6.0",
+    "coverage>=7.8.2",
+    "pytest>=8.4.0",
+    "mypy>=1.16.0",
+    "mock>=4.0.1",
+    "junitparser>=2",
+    "pyocd>=0.35.0",
+    "tabulate>=0.9.0",
+    "natsort>=8.4.0",
+    "cbor>=1.0.0",
+    "python-can>=4.3.0",
+    "gitpython>=3.1.41",
+    "gitlint>=0.19.1",
+    "junit2html>=31.0.2",
+    "lpc-checksum>=3.0.0",
+    "pillow>=10.3.0",
+    "pygithub>=2.6.1",
+    "graphviz>=0.20.3",
+    "clang-format>=15.0.0",
+    "lxml>=5.3.0",
+    "pylint>=3",
+    "python-magic-bin>=0.4.14 ; sys_platform == 'win32'",
+    "python-magic>=0.4.27 ; sys_platform != 'win32'",
+    "sphinx-lint>=1.0.0",
+    "unidiff>=0.7.5",
+    "yamllint>=1.37.1",
+]
+
+[project.scripts]
+gale = "gale.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

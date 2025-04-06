@@ -1,0 +1,35 @@
+manifest:
+  version: "1.2"
+
+  self:
+    path: gale
+    west-commands: scripts/west-commands.yml
+
+  remotes:
+    - name: origin
+      url-base: https://github.com/JaagupAverin
+
+  defaults:
+    remote: origin
+    revision: main
+
+  projects:
+    - name: gale-sensor-app
+      path: gale/projects/sensor_app
+      groups: [sensor]
+      west-commands: scripts/west-commands.yml
+
+    - name: gale-hmi-app
+      path: gale/projects/hmi_app
+      groups: [hmi]
+
+    - name: gale-shared
+      path: gale/projects/shared
+      groups: [sensor, hmi]
+
+    - name: gale-zephyr
+      path: zephyr
+      west-commands: scripts/west-commands.yml
+      import:
+        path-prefix: gale/projects/
+        name-allowlist: [hal_espressif]

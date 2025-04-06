@@ -1,0 +1,4 @@
+version.path = "src/gale/version.py"
+
+[build.targets.sdist]
+packages = ["src/gale"]
