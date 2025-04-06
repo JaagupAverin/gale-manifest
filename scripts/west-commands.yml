@@ -6,7 +6,7 @@ west-commands:
         help: install gale development dependencies
       - name: gale-checkout
         class: GaleCheckout
-        help: fetch and checkout the main branch in all gale repositories
+        help: fetch and checkout a branch in all gale repositories
       - name: gale-push
         class: GalePush
         help: commit and push all local changes in all gale repositories

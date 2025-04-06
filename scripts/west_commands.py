@@ -67,11 +67,11 @@ class GaleCheckout(WestCommand):
     def __init__(self) -> None:
         super().__init__(
             "gale-checkout",
-            "fetch and checkout the main branch in all gale repositories",
+            "fetch and checkout a branch in all gale repositories",
             textwrap.dedent("""
-                Checkout the main (or custom) branch in all gale repositories.
+                Checkout the given branch in all gale repositories.
                 Useful during development when working with multiple repositories that should point to the same branch.
-                Usage: west gale-checkout [<branch>]
+                Usage: west gale-checkout <branch>
             """),
         )
 
@@ -84,9 +84,7 @@ class GaleCheckout(WestCommand):
         )
         parser.add_argument(
             "branch",
-            nargs="?",
-            default="main",
-            help="branch to checkout (default: main)",
+            help="branch to checkout",
         )
         return parser
 
@@ -107,7 +105,7 @@ class GalePush(WestCommand):
             textwrap.dedent("""
                 Commit and push local changes in all gale repositories.
                 Useful during development when working with multiple repositories.
-                Usage: west gale-push [message]
+                Usage: west gale-push <"message">
             """),
         )
 
@@ -120,8 +118,7 @@ class GalePush(WestCommand):
         )
         parser.add_argument(
             "message",
-            nargs="?",
-            default="Update",
+            help="commit message",
         )
         return parser
 
