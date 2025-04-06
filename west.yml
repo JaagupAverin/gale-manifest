@@ -2,7 +2,7 @@ manifest:
   version: "1.2"
 
   self:
-    path: manifest
+    path: gale_manifest
 
   remotes:
     - name: origin
@@ -13,9 +13,9 @@ manifest:
 
   projects:
     - name: gale-sensor-app
-      path: sensor_app
+      path: gale_sensor_app
     - name: gale-hmi-app
-      path: hmi_app
+      path: gale_hmi_app
     - name: gale-shared
-      path: shared
+      path: gale_shared
       import: true
