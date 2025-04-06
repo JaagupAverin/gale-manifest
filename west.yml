@@ -1,0 +1,18 @@
+manifest:
+  version: "1.2"
+
+  self:
+    path: manifest
+
+  remotes:
+    - name: origin
+      url-base: https://github.com/JaagupAverin
+  defaults:
+    remote: origin
+    revision: main
+
+  projects:
+    - name: gale-sensor-app
+      import: true
+    - name: gale-bluetooth-app
+      import: true
