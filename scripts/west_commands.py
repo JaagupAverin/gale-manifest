@@ -6,10 +6,11 @@ import textwrap
 from pathlib import Path
 from typing import Any, override
 
+from west import log
 from west.commands import WestCommand
 
-file_dir = Path(__file__).parent.parent
-sys.path.append(os.fspath(file_dir))
+this_repo_dir = Path(__file__).parent.parent
+sys.path.append(os.fspath(this_repo_dir))
 
 
 def in_venv() -> bool:
@@ -42,12 +43,24 @@ class GaleInstall(WestCommand):
         if not requirements_path.exists():
             self.die(f"requirements.txt not found at {requirements_path}")
         else:
-            self.inf(f"Installing requirements from {requirements_path}...", colorize=True)
+            log.inf(f"Installing requirements from {requirements_path}...", colorize=True)
             try:
                 cmd: str = f"{sys.executable} -m pip install -r {requirements_path}"
                 subprocess.check_call(cmd, shell=True)  # noqa: S602
             except subprocess.CalledProcessError as e:
                 self.die(f"Failed to install requirements: {e}")
+
+
+def run_command_for_all_repos(subcmd: str, group: str = "gale") -> None:
+    try:
+        cmd = f"west forall -g {group} -c '{subcmd}'"
+        subprocess.check_call(cmd, shell=True)  # noqa: S602
+
+        # Also repeat command for this (manifest) repository:
+        log.inf(f"=== running '{subcmd}' in {this_repo_dir}", colorize=True)
+        subprocess.check_call(subcmd, shell=True, cwd=this_repo_dir)  # noqa: S602
+    except subprocess.CalledProcessError as e:
+        log.wrn(f"Cmd failed: {e}")
 
 
 class GaleCheckout(WestCommand):
@@ -80,16 +93,10 @@ class GaleCheckout(WestCommand):
     @override
     def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
         branch = args.branch
-        self.inf(f"Checking out branch '{branch}' in all gale repositories...", colorize=True)
+        log.inf(f"Checking out branch '{branch}' in all gale repositories...", colorize=True)
 
-        try:
-            subcmd = f"git fetch && git switch {branch} || git switch --track origin/{branch}"
-            cmd = f"west forall -g gale -c '{subcmd}'"
-            subprocess.check_call(cmd, shell=True)  # noqa: S602
-            # Also repeat command for this (manifest) repository:
-            subprocess.check_call(subcmd, shell=True, cwd=file_dir)  # noqa: S602
-        except subprocess.CalledProcessError as e:
-            self.wrn(f"Failed to checkout branch '{branch}': {e}")
+        subcmd = f"git fetch && git switch {branch} || git switch --track origin/{branch}"
+        run_command_for_all_repos(subcmd)
 
 
 class GalePush(WestCommand):
@@ -120,16 +127,7 @@ class GalePush(WestCommand):
 
     @override
     def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
-        self.inf("Committing and pushing changes in all gale repositories...", colorize=True)
+        log.inf("Committing and pushing changes in all gale repositories...", colorize=True)
 
-        try:
-            subcmd = (
-                f'git diff-index --quiet HEAD -- || git add . && git commit -m "{args.message}" && git push || true'
-            )
-            cmd = f"west forall -g gale -c '{subcmd}'"
-            subprocess.check_call(cmd, shell=True)  # noqa: S602
-            # Also repeat command for this (manifest) repository:
-            self.inf(f"Running {subcmd} in {file_dir}", colorize=True)
-            subprocess.check_call(subcmd, shell=True, cwd=file_dir)  # noqa: S602
-        except subprocess.CalledProcessError as e:
-            self.wrn(f"Failed to commit and push changes: {e}")
+        subcmd = f'git diff-index --quiet HEAD -- || git add . && git commit -m "{args.message}" && git push || true'
+        run_command_for_all_repos(subcmd)
