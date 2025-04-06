@@ -13,4 +13,9 @@ manifest:
 
   projects:
     - name: gale-sensor-app
+      path: sensor_app
     - name: gale-bluetooth-app
+      path: bluetooth_app
+    - name: gale-shared
+      path: shared
+      import: true
