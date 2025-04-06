@@ -1,0 +1,12 @@
+west-commands:
+  - file: scripts/west_commands.py
+    commands:
+      - name: gale-install
+        class: GaleInstall
+        help: install gale development dependencies
+      - name: gale-checkout
+        class: GaleCheckout
+        help: fetch and checkout the main branch in all gale repositories
+      - name: gale-push
+        class: GalePush
+        help: commit and push all local changes in all gale repositories

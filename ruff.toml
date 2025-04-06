@@ -1,0 +1,25 @@
+exclude = [".git", ".venv"]
+target-version = "py312"
+line-length = 120
+indent-width = 4
+
+[lint]
+select = ["ALL"]
+ignore = [
+    "ANN10",  # Ignore "Missing type annotation for self": adding type to 'self' is redundant.
+    "RUF012", # Ignore "Missing typing.ClassVar": it cannot be pleased when working with libraries.
+    "FBT",    # Ignore "Boolean-types position argument": useless.
+    "PD",     # Ignore Pandas warnings: too many false positives.
+    "D10",    # Ignore "Missing docstring in X" warnings: too time consuming for now.
+    "D401",   # Ignore "Imperative mood in docstring" warnings: too general.
+    "TD",     # Ignore meta-TODO warnings: too time consuming for now.
+    "FIX",    # Ignore "Resolve TODO" warnings: we can find them manually when we want to.
+    "COM812", # Ignore "Missing trailing comma": handled by Ruff formatter instead.
+    "ISC",    # Ignore "Implicit string concatenation": handled by Ruff formatter instead.
+    "TRY400", # Ignore "Use logging.exception in exception handling": not all exceptions in Python are equally important
+]
+fixable = ["ALL"]
+unfixable = [
+    "ERA001", # Don't fix: "Commented out code": annoying during development.
+    "F401",   # Don't fix: "Unused import": annoying during development.
+]
