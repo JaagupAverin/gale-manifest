@@ -12,8 +12,6 @@ A Zephyr demo that shows how to set up a multi-application project with a shared
 
 ![Gale Manifest Diagram](res/gale-manifest.drawio.png)
 
-- _Alternatively, each application can be initialized individually._
-
 ## Quickstart:
 
 Clone repositories:
