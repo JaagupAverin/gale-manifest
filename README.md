@@ -1,6 +1,6 @@
 # Gale
 
-A Zephyr demo that shows how to set up a multi-application project with a common interface. Liberally uses the many kernel features and other utilities provided by Zephyr (some simple things are occasionally over-engineered for the sake of demonstration).
+A Zephyr demo that shows how to set up a multi-application project with a shared interface. Liberally uses the many kernel features and other utilities provided by Zephyr (some simple things are occasionally over-engineered for the sake of demonstration).
 
 ## Repositories
 
@@ -12,9 +12,9 @@ A Zephyr demo that shows how to set up a multi-application project with a common
 
 ![Gale Manifest Diagram](res/gale-manifest.drawio.png)
 
-* _Alternatively, each application can be initialized individually._
+- _Alternatively, each application can be initialized individually._
 
-# Quickstart:
+## Quickstart:
 
 Clone repositories:
 
@@ -28,11 +28,15 @@ Install dependencies:
 
 ```bash
 python -m venv .venv
-
+source .venv/bin/activate
 python -m pip install west ruff basedpyright
 west packages pip --install
 west sdk install
+```
 
-ln -s .venv common/.venv
-ln -s .venv zephyr/.venv
+Sync repositories:
+
+```bash
+# Rebase option is recommended to keep all application repositories pointing to a valid branch.
+west update --rebase
 ```
