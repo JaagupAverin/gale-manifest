@@ -14,6 +14,7 @@ def run_command(subcmd: str, cwd: str | None = None) -> str:
     Terminates if command failed; returns command stdout.
     """
     try:
+        log.inf(f"Running `{subcmd}` in {cwd}")
         result: bytes = subprocess.check_output(subcmd, shell=True, cwd=cwd)  # noqa: S602
         return result.decode("utf-8").strip()
     except (subprocess.CalledProcessError, FileNotFoundError) as e:

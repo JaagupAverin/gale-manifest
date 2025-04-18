@@ -18,7 +18,7 @@ class Project:
     is_fork: bool = field(default=False)
 
     def __post_init__(self) -> None:
-        topdir = run_command("west topdir")
+        topdir: str = run_command("west topdir")
         self.path = f"{topdir}/{self.path}"
 
 
