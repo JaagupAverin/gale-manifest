@@ -19,7 +19,7 @@ def run_command(subcmd: str, cwd: str | None = None) -> str:
         if cwd is None:
             cwd = str(Path.cwd())
 
-        log.inf(f"Running `{subcmd}` in {cwd}")
+        log.inf(f"Running `{subcmd}` in {cwd}", colorize=True)
         result: bytes = subprocess.check_output(subcmd, shell=True, cwd=cwd)  # noqa: S602
         return result.decode("utf-8").strip()
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
