@@ -1,16 +1,13 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
-from util import run_command
+from util import WEST_TOPDIR
 
 
 class ProjectType(Enum):
     App = "app"
     Dependency = "dependency"
     Manifest = "manifest"
-
-
-topdir: str = run_command("west topdir")
 
 
 @dataclass
@@ -21,7 +18,7 @@ class Project:
     is_fork: bool = field(default=False)
 
     def __post_init__(self) -> None:
-        self.path = f"{topdir}/{self.path}"
+        self.path = f"{WEST_TOPDIR}/{self.path}"
 
 
 PROJECTS: list[Project] = [

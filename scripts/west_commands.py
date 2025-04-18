@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, override
 
 from projects import PROJECTS, Project, ProjectType
-from util import in_venv, run_command
+from util import in_venv, install_system_packages, run_command
 from west import log
 from west.commands import WestCommand
 
@@ -45,8 +45,7 @@ class GaleSetup(WestCommand):
         run_command(cmd)
 
         log.inf("Installing dependencies for QEMU...", colorize=True)
-        cmd = "sudo apt install qemu-system qemu-user-static"
-        run_command(cmd)
+        install_system_packages(["qemu-system", "qemu-user-static"])
 
 
 class GaleCheckout(WestCommand):
@@ -82,7 +81,7 @@ class GaleCheckout(WestCommand):
 
         user_projects: list[Project] = [project for project in PROJECTS if not project.is_fork]
         for project in user_projects:
-            run_command(cmd, project.path)
+            run_command(cmd, cwd=project.path, fatal=False)
 
 
 class GalePush(WestCommand):
@@ -113,7 +112,7 @@ class GalePush(WestCommand):
     @override
     def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
         log.inf("Committing and pushing changes in all gale repositories...", colorize=True)
-        cmd: str = f'git diff-index --quiet HEAD -- || git add . && git commit -m "{args.message}" && git push || true'
+        cmd: str = f'git diff-index --no-index --quiet HEAD -- || git add . && git commit -m "{args.message}" && git push || true'
 
         user_projects: list[Project] = [project for project in PROJECTS if not project.is_fork]
         for project in user_projects:

@@ -1,6 +1,6 @@
 import subprocess
 import sys
-from pathlib import Path
+from dataclasses import dataclass
 
 from west import log
 
@@ -9,17 +9,59 @@ def in_venv() -> bool:
     return sys.prefix != sys.base_prefix
 
 
-def run_command(subcmd: str, cwd: str | None = None) -> str:
-    """Run the command in given directory.
+@dataclass
+class CmdResult:
+    code: int
+    stdout: str
 
-    Terminates if command failed; returns command stdout.
+
+def run_command(cmd: str, cwd: str | None = None, fatal: bool = True) -> CmdResult:
+    """Run the given command command.
+
+    cwd: directory to run command in; defaults to WEST_TOPDIR;
+    fatal: if True, program will terminate on command failure;
+           if False, error is returned;
+
+    Only OS agnostic commands (such as git, python) should be used.
     """
-    try:
-        if cwd is None:
-            cwd = str(Path.cwd())
+    if cwd is None:
+        cwd = WEST_TOPDIR
 
-        log.inf(f"Running `{subcmd}` in {cwd}", colorize=True)
-        result: bytes = subprocess.check_output(subcmd, shell=True, cwd=cwd)  # noqa: S602
-        return result.decode("utf-8").strip()
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        log.die(f"Cmd failed: {e}")
+    try:
+        log.inf(f"Running `{cmd}` in `{cwd}`", colorize=True)
+        out = subprocess.run(  # noqa: S602
+            cmd,
+            shell=True,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        log.inf(out.stdout)
+        out = out.stdout.strip()
+        return CmdResult(0, out)
+    except FileNotFoundError:
+        log.die(f"Invalid working directory {cwd}")
+    except subprocess.CalledProcessError as e:
+        log.inf(e.stdout)
+        if fatal:
+            log.err(e.stderr)
+            log.die(f"Cmd failed: {e}")
+        else:
+            log.wrn(e.stderr)
+            return CmdResult(e.returncode, e.stderr)
+
+
+def install_system_packages(packages: list[str]) -> None:
+    if sys.platform.startswith("linux"):
+        exe = "sudo apt install"
+    elif sys.platform.startswith("win"):
+        log.die("Don't know how to install packages on windows.")
+    else:
+        msg: str = f"Unsupported platform: {sys.platform}"
+        raise NotImplementedError(msg)
+
+    run_command(" ".join([exe, *packages]))
+
+
+WEST_TOPDIR: str = run_command("west topdir", cwd=".").stdout
