@@ -21,37 +21,49 @@ class Project:
         self.path = f"{WEST_TOPDIR}/{self.path}"
 
 
+MANIFEST_PROJECT = Project(
+    "manifest",
+    "manifest",
+    ProjectType.Manifest,
+)
+
+SENSOR_APP_PROJECT = Project(
+    "sensor-app",
+    "sensor_app",
+    ProjectType.App,
+)
+
+HMI_APP_PROJECT = Project(
+    "hmi-app",
+    "hmi_app",
+    ProjectType.App,
+)
+
+SHARED_PROJECT = Project(
+    "shared",
+    "shared",
+    ProjectType.Dependency,
+)
+
+ZEPHYR_PROJECT = Project(
+    "zephyr",
+    "zephyr",
+    ProjectType.Dependency,
+    is_fork=True,
+)
+
+HAL_ESPRESSIF_PROJECT = Project(
+    "hal_espressif",
+    "modules/hal/espressif",
+    ProjectType.Dependency,
+    is_fork=True,
+)
+
 PROJECTS: list[Project] = [
-    Project(
-        "manifest",
-        "manifest",
-        ProjectType.Manifest,
-    ),
-    Project(
-        "sensor-app",
-        "sensor_app",
-        ProjectType.App,
-    ),
-    Project(
-        "hmi-app",
-        "hmi_app",
-        ProjectType.App,
-    ),
-    Project(
-        "shared",
-        "shared",
-        ProjectType.Dependency,
-    ),
-    Project(
-        "zephyr",
-        "zephyr",
-        ProjectType.Dependency,
-        is_fork=True,
-    ),
-    Project(
-        "hal_espressif",
-        "modules/hal/espressif",
-        ProjectType.Dependency,
-        is_fork=True,
-    ),
+    MANIFEST_PROJECT,
+    SENSOR_APP_PROJECT,
+    HMI_APP_PROJECT,
+    SHARED_PROJECT,
+    ZEPHYR_PROJECT,
+    HAL_ESPRESSIF_PROJECT,
 ]

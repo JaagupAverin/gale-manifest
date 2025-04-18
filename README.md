@@ -73,7 +73,7 @@ west gale-push "Updated stuff."
 ### QEMU (Linux)
 
 ```bash
-sudo apt install qemu-system qemu-user-static
+west gale-setup
 ```
 
 ```bash

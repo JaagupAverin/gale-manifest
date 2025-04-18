@@ -5,8 +5,8 @@ import textwrap
 from pathlib import Path
 from typing import Any, override
 
-from projects import PROJECTS, Project, ProjectType
-from util import in_venv, install_system_packages, run_command
+from projects import PROJECTS, SHARED_PROJECT, Project, ProjectType
+from util import in_venv, install_system_packages, run_command, source_environment
 from west import log
 from west.commands import WestCommand
 
@@ -144,3 +144,19 @@ class GaleEmulate(WestCommand):
     def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
         if not in_venv():
             self.die("This script must be run from within a virtual environment.")
+
+        project: Project | None = None
+        for prj in PROJECTS:
+            if prj.type == ProjectType.App and prj.name == args.application:
+                project = prj
+                break
+        if project is None:
+            self.die(f"Application '{args.application}' not found.")
+
+        # Source the environment file, which exports the QEMU board value, etc:
+        env_qemu: str = f"{SHARED_PROJECT.path}/env_qemu"
+        source_environment(env_qemu)
+
+        # Build the application for the QEMU board and run the "flash" command:
+        build_dir: str = f"{project.path}/build_qemu"
+        run_command(f"west build -d {build_dir} -t run", cwd=project.path)
