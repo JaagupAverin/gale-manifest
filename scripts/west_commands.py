@@ -44,7 +44,7 @@ class GaleSetup(WestCommand):
         cmd: str = f"{sys.executable} -m pip install -r {requirements_path}"
         run_command(cmd)
 
-        log.inf("Installing dependencies for QEMU...")
+        log.inf("Installing dependencies for QEMU...", colorize=True)
         cmd = "sudo apt install qemu-system qemu-user-static"
         run_command(cmd)
 

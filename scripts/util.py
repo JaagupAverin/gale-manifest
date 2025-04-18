@@ -1,5 +1,7 @@
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 from west import log
 
@@ -14,6 +16,9 @@ def run_command(subcmd: str, cwd: str | None = None) -> str:
     Terminates if command failed; returns command stdout.
     """
     try:
+        if cwd is None:
+            cwd = str(Path.cwd())
+
         log.inf(f"Running `{subcmd}` in {cwd}")
         result: bytes = subprocess.check_output(subcmd, shell=True, cwd=cwd)  # noqa: S602
         return result.decode("utf-8").strip()
