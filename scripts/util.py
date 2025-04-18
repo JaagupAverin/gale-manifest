@@ -34,6 +34,7 @@ def run_command(cmd: str, cwd: str | None = None, fatal: bool = True) -> CmdResu
             shell=True,
             cwd=cwd,
             stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             check=True,
         )
