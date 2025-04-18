@@ -70,16 +70,14 @@ west gale-checkout main
 west gale-push "Updated stuff."
 ```
 
-### QEMU (Linux)
+### Running an application in emulator (QEMU):
 
 ```bash
 west gale-setup
 ```
 
 ```bash
-source ../shared/env_qemu
-west build -d build_qemu -t run
-qemu-riscv32 -sS ./build_qemu/
+west gale-emulate sensor-app
 ```
 
 ## Appendix
