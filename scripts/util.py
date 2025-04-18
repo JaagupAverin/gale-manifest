@@ -33,16 +33,17 @@ def run_command(cmd: str, cwd: str | None = None, fatal: bool = True) -> CmdResu
             cmd,
             shell=True,
             cwd=cwd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=True,
         )
         out = out.stdout.strip()
+        log.inf(out)
         return CmdResult(0, out)
     except FileNotFoundError:
         log.die(f"Invalid working directory {cwd}")
     except subprocess.CalledProcessError as e:
+        log.inf(e.stdout)
         if fatal:
             log.err(e.stderr)
             log.die(f"Cmd failed: {e}")
