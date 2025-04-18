@@ -53,7 +53,6 @@ def run_command(cmd: str, cwd: str | None = None, fatal: bool = True, capture_ou
         if fatal:
             log.die(f"Cmd failed: {e}")
         else:
-            log.wrn(f"Cmd failed: {e}")
             return CmdResult(e.returncode, e.stderr)
 
 
