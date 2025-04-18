@@ -112,7 +112,7 @@ class GalePush(WestCommand):
     @override
     def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
         log.inf("Committing and pushing changes in all gale repositories...", colorize=True)
-        cmd: str = f'git diff-index --no-index --quiet HEAD -- || git add . && git commit -m "{args.message}" && git push || true'
+        cmd: str = f'git diff-index --quiet HEAD -- || git add . && git commit -m "{args.message}" && git push || true'
 
         user_projects: list[Project] = [project for project in PROJECTS if not project.is_fork]
         for project in user_projects:
