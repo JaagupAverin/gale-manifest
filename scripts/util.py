@@ -43,12 +43,13 @@ def run_command(cmd: str, cwd: str | None = None, fatal: bool = True) -> CmdResu
     except FileNotFoundError:
         log.die(f"Invalid working directory {cwd}")
     except subprocess.CalledProcessError as e:
-        log.inf(e.stdout)
-        if fatal:
+        log.wrn(e.stdout)
+        if e.stderr:
             log.err(e.stderr)
+
+        if fatal:
             log.die(f"Cmd failed: {e}")
         else:
-            log.wrn(e.stderr)
             return CmdResult(e.returncode, e.stderr)
 
 
