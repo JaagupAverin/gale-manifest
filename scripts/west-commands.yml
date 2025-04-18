@@ -1,12 +1,15 @@
 west-commands:
   - file: scripts/west_commands.py
     commands:
-      - name: gale-install
-        class: GaleInstall
-        help: install gale development dependencies
+      - name: gale-setup
+        class: GaleSetup
+        help: install development dependencies for building, flashing, etc
       - name: gale-checkout
         class: GaleCheckout
-        help: fetch and checkout a branch in all gale repositories
+        help: fetch and checkout a branch in all user (non-fork) repositories
       - name: gale-push
         class: GalePush
-        help: commit and push all local changes in all gale repositories
+        help: commit and push local changes in all user (non-fork) repositories
+      - name: gale-emulate
+        class: GaleEmulate
+        help: run the given application in QEMU

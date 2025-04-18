@@ -2,7 +2,7 @@ manifest:
   version: "1.2"
 
   self:
-    path: gale_manifest
+    path: manifest
     west-commands: scripts/west-commands.yml
 
   remotes:
@@ -18,15 +18,16 @@ manifest:
   group-filter: [-sensor, -hmi, -gale, -hal]
   projects:
     - name: gale-sensor-app
-      path: gale_sensor_app
+      path: sensor_app
       groups: [sensor, gale]
+      west-commands: scripts/west-commands.yml
 
     - name: gale-hmi-app
-      path: gale_hmi_app
+      path: hmi_app
       groups: [hmi, gale]
 
     - name: gale-shared
-      path: gale_shared
+      path: shared
       groups: [sensor, hmi, gale]
 
     - name: gale-zephyr

@@ -1,11 +1,12 @@
 import argparse
 import os
-import subprocess
 import sys
 import textwrap
 from pathlib import Path
 from typing import Any, override
 
+from projects import PROJECTS, Project, ProjectType
+from util import in_venv, run_command
 from west import log
 from west.commands import WestCommand
 
@@ -13,16 +14,12 @@ this_repo_dir = Path(__file__).parent.parent
 sys.path.append(os.fspath(this_repo_dir))
 
 
-def in_venv() -> bool:
-    return sys.prefix != sys.base_prefix
-
-
-class GaleInstall(WestCommand):
+class GaleSetup(WestCommand):
     def __init__(self) -> None:
         super().__init__(
-            "gale-install",
-            "install gale dependencies",
-            "Install requirements for Gale development. Usage: west gale-install",
+            "gale-setup",
+            "install development dependencies for building, flashing, etc",
+            "Install development dependencies for building, flashing, etc. Usage: west gale-setup",
         )
 
     @override
@@ -42,34 +39,23 @@ class GaleInstall(WestCommand):
         requirements_path = Path(__file__).parent.parent / "requirements.txt"
         if not requirements_path.exists():
             self.die(f"requirements.txt not found at {requirements_path}")
-        else:
-            log.inf(f"Installing requirements from {requirements_path}...", colorize=True)
-            try:
-                cmd: str = f"{sys.executable} -m pip install -r {requirements_path}"
-                subprocess.check_call(cmd, shell=True)  # noqa: S602
-            except subprocess.CalledProcessError as e:
-                self.die(f"Failed to install requirements: {e}")
 
+        log.inf(f"Installing requirements from {requirements_path}...", colorize=True)
+        cmd: str = f"{sys.executable} -m pip install -r {requirements_path}"
+        run_command(cmd)
 
-def run_command_for_all_repos(subcmd: str, group: str = "gale") -> None:
-    try:
-        cmd = f"west forall -g {group} -c '{subcmd}'"
-        subprocess.check_call(cmd, shell=True)  # noqa: S602
-
-        # Also repeat command for this (manifest) repository:
-        log.inf(f"=== running '{subcmd}' in {this_repo_dir}", colorize=True)
-        subprocess.check_call(subcmd, shell=True, cwd=this_repo_dir)  # noqa: S602
-    except subprocess.CalledProcessError as e:
-        log.wrn(f"Cmd failed: {e}")
+        log.inf("Installing dependencies for QEMU...")
+        cmd = "sudo apt install qemu-system qemu-user-static"
+        run_command(cmd)
 
 
 class GaleCheckout(WestCommand):
     def __init__(self) -> None:
         super().__init__(
             "gale-checkout",
-            "fetch and checkout a branch in all gale repositories",
+            "fetch and checkout a branch in all user (non-fork) repositories",
             textwrap.dedent("""
-                Checkout the given branch in all gale repositories.
+                Checkout the given branch in all user (non-fork) repositories.
                 Useful during development when working with multiple repositories that should point to the same branch.
                 Usage: west gale-checkout <branch>
             """),
@@ -92,18 +78,20 @@ class GaleCheckout(WestCommand):
     def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
         branch = args.branch
         log.inf(f"Checking out branch '{branch}' in all gale repositories...", colorize=True)
+        cmd: str = f"git fetch && git switch {branch} || git switch --track origin/{branch}"
 
-        subcmd = f"git fetch && git switch {branch} || git switch --track origin/{branch}"
-        run_command_for_all_repos(subcmd)
+        user_projects: list[Project] = [project for project in PROJECTS if not project.is_fork]
+        for project in user_projects:
+            run_command(cmd, project.path)
 
 
 class GalePush(WestCommand):
     def __init__(self) -> None:
         super().__init__(
             "gale-push",
-            "commit and push local changes in all gale repositories",
+            "commit and push local changes in all user (non-fork) repositories",
             textwrap.dedent("""
-                Commit and push local changes in all gale repositories.
+                Commit and push local changes in all user (non-fork) repositories.
                 Useful during development when working with multiple repositories.
                 Usage: west gale-push <"message">
             """),
@@ -125,6 +113,35 @@ class GalePush(WestCommand):
     @override
     def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
         log.inf("Committing and pushing changes in all gale repositories...", colorize=True)
+        cmd: str = f'git diff-index --quiet HEAD -- || git add . && git commit -m "{args.message}" && git push || true'
 
-        subcmd = f'git diff-index --quiet HEAD -- || git add . && git commit -m "{args.message}" && git push || true'
-        run_command_for_all_repos(subcmd)
+        user_projects: list[Project] = [project for project in PROJECTS if not project.is_fork]
+        for project in user_projects:
+            run_command(cmd, project.path)
+
+
+class GaleEmulate(WestCommand):
+    def __init__(self) -> None:
+        super().__init__(
+            "gale-emulate",
+            "run the given application in QEMU",
+            "Run the given application in QEMU. Usage: west gale-emulate <app>",
+        )
+
+    @override
+    def do_add_parser(self, parser_adder: Any) -> argparse.ArgumentParser:
+        parser: argparse.ArgumentParser = parser_adder.add_parser(
+            self.name,
+            help=self.help,
+            description=self.description,
+        )
+        parser.add_argument(
+            "application",
+            choices=[project.name for project in PROJECTS if project.type == ProjectType.App],
+        )
+        return parser
+
+    @override
+    def do_run(self, args: argparse.Namespace, unknown: list[str]) -> None:
+        if not in_venv():
+            self.die("This script must be run from within a virtual environment.")

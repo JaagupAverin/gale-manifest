@@ -4,5 +4,6 @@
   "reportUnusedCallResult": "none",
   "reportAny": "none",
   "reportExplicitAny": "none",
-  "reportUnknownMemberType": "none"
+  "reportUnknownMemberType": "none",
+  "reportImplicitRelativeImport": "none"
 }

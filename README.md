@@ -12,6 +12,18 @@ A Zephyr demo that shows how to set up a multi-application project with a shared
 
 ![Gale Manifest Diagram](res/gale-manifest.drawio.png)
 
+## Resources
+
+### Datasheets
+
+- [ESP32-C3-DevKit-RUST Zephyr page](https://docs.zephyrproject.org/latest/boards/espressif/esp32c3_rust/doc/index.html)
+- [ESP32-C3-DevKit-RUST Github](https://github.com/esp-rs/esp-rust-board)
+- [ESP32-C3-MINI-1 Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf)
+  - Pin definitions in chapter 3 (page 10)
+- [ESP32-C3 series Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf)
+  - Pin definitions in chapter 2 (page 10)
+  - CPU and peripheral details in chapter 3
+
 ## Quickstart:
 
 ### Clone all repositories:
@@ -24,6 +36,7 @@ west update
 ```
 
 #### Alternatively, use the following to initialize only a specific application:
+
 _Note that this can be reconfigured at any time and will simply affect which repositories are tracked by west._
 
 ```bash
@@ -56,3 +69,21 @@ west gale-checkout main
 # Commit and push local changes in all gale repositories:
 west gale-push "Updated stuff."
 ```
+
+### QEMU (Linux)
+
+```bash
+sudo apt install qemu-system qemu-user-static
+```
+
+```bash
+source ../shared/env_qemu
+west build -d build_qemu -t run
+qemu-riscv32 -sS ./build_qemu/
+```
+
+## Appendix
+
+### Pinout
+
+![pinout](res/esp32-c3-pinout.png)
