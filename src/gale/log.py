@@ -5,6 +5,7 @@ from typing import Any, NoReturn
 
 import structlog
 from rich import box, pretty
+from rich.box import Box
 from rich.console import Console, ConsoleRenderable
 from rich.highlighter import ReprHighlighter
 from rich.table import Table
@@ -21,6 +22,17 @@ _custom_log_themes = Theme(
         "debug": "white",
         "code": "dim white",
     }
+)
+
+DETAILS_BOX: Box = Box(
+    "╭──╮\n"  # /
+    "│  │\n"  # /
+    "├──┤\n"  # /
+    "│  │\n"  # /
+    "├──┤\n"  # /
+    "├──┤\n"  # /
+    "│  │\n"  # /
+    "╰──╯\n"  # /
 )
 
 
@@ -51,7 +63,7 @@ def _console_printer(
 
     # Format event dictionary into a Rich Table:
     if event_dict:
-        table = Table(box=box.ROUNDED, border_style=level, show_header=False, show_lines=True, expand=False)
+        table = Table(box=DETAILS_BOX, border_style=level, show_header=False, show_lines=True, expand=False)
         table.add_column("name", justify="right", style=level, max_width=10)
         for key, value in event_dict.items():
             key_text = key.replace("_", " ")
@@ -60,7 +72,7 @@ def _console_printer(
                 prettified_value = pretty.Pretty(
                     value,
                     highlighter=ReprHighlighter(),
-                    indent_guides=True,
+                    indent_guides=False,
                     expand_all=True,
                 )
             elif isinstance(value, ConsoleRenderable):

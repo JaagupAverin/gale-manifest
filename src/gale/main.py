@@ -1,12 +1,14 @@
 from enum import Enum
+from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from gale import log
 from gale.common import set_verbose
+from gale.project_cache import ProjectCache
 from gale.projects import HMI_APP_PROJECT, PROJECTS, SENSOR_APP_PROJECT, SHARED_PROJECT, Project
-from gale.util import in_venv, install_system_packages, run_command, source_environment
+from gale.util import CmdMode, in_venv, install_system_packages, run_command, source_environment
 
 app: typer.Typer = typer.Typer(name="woid", rich_markup_mode="rich", no_args_is_help=True)
 
@@ -56,7 +58,7 @@ def checkout(branch: str) -> None:
 
     user_projects: list[Project] = [project for project in PROJECTS if not project.is_fork]
     for project in user_projects:
-        run_command(cmd, cwd=project.path, fatal=False)
+        run_command(cmd, mode=CmdMode.FOREGROUND, cwd=project.path, fatal=False)
 
 
 @app.command()
@@ -71,7 +73,7 @@ def push(message: str) -> None:
 
     user_projects: list[Project] = [project for project in PROJECTS if not project.is_fork]
     for project in user_projects:
-        run_command(cmd, cwd=project.path, fatal=False)
+        run_command(cmd, mode=CmdMode.FOREGROUND, cwd=project.path, fatal=False)
 
 
 class AppEnum(str, Enum):
@@ -80,7 +82,7 @@ class AppEnum(str, Enum):
 
 
 @app.command()
-def emulate(app: AppEnum) -> None:
+def emulate(app: AppEnum, debug: Annotated[bool, typer.Option("--debug", help="Enable debug mode.")] = False) -> None:
     """Run the given application in QEMU. Usage: gale emulate <app>."""
     if not in_venv():
         log.fatal("This script must be run from within a virtual environment.")
@@ -95,9 +97,26 @@ def emulate(app: AppEnum) -> None:
     env_qemu: str = f"{SHARED_PROJECT.path}/env_qemu"
     source_environment(env_qemu)
 
-    # Build the application for the QEMU board and run the "flash" command:
     build_dir: str = f"{project.path}/build_qemu"
-    run_command(f"west build -d {build_dir} -t run", cwd=project.path)
+    extra_conf: str = f"{SHARED_PROJECT.path}/kconfig/qemu.conf"
+    target: str = "debugserver_qemu" if debug else "run"
+    command: str = f"west build -d {build_dir} --extra-conf {extra_conf} -t {target}"
+
+    if debug:
+        project_cache: ProjectCache = ProjectCache(Path(build_dir))
+        gdb: str = project_cache.cmake_cache.gdb
+        zephyr_base: str = project_cache.cmake_cache.zephyr_base
+        run_command(command, mode=CmdMode.BACKGROUND, cwd=project.path)
+
+        elf_path = f"{build_dir}/zephyr/zephyr.elf"
+        gdbconf = f"-x {SHARED_PROJECT.path}/gdb/.qemu_gdbconf"
+        prep_zephyr = f"-ex='dir {zephyr_base}'"
+        run_command(
+            f"{gdb} {prep_zephyr} {gdbconf} {elf_path}",
+            mode=CmdMode.FOREGROUND,
+        )
+    else:
+        run_command(command, mode=CmdMode.FOREGROUND, cwd=project.path)
 
 
 if __name__ == "__main__":

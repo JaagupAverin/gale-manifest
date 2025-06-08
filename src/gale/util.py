@@ -1,8 +1,13 @@
 import os
+import pty
+import signal
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from enum import Enum
 from functools import cache
+from threading import Semaphore, Thread
+from typing import Any, Never
 
 from gale import log
 
@@ -12,51 +17,120 @@ def in_venv() -> bool:
 
 
 @dataclass
-class CmdResult:
-    code: int
-    stdout: str
+class Cmd:
+    ready: Semaphore = field(default_factory=Semaphore)
+    thread: Thread | None = field(default=None)
+    proc: subprocess.Popen[str] | None = field(default=None)
+    cmd: str = field(default="")
+
+    code: int = field(default=0)
+    stdout: str = field(default="")
+
+
+_CMD_HISTORY: list[Cmd] = []
+
+
+class CmdMode(Enum):
+    FOREGROUND = 0  # Run program with stdout/stdin piped to active terminal;
+    BACKGROUND = 1  # Run program with stdout/stdin piped to a new virtual port;
+    CAPTURE_RESULT = 2  # Run program without live stdout/stdin - only return result;
 
 
 def run_command(
-    cmd: str, cwd: str | None = None, fatal: bool = True, capture_output: bool = False, silent: bool = False
-) -> CmdResult:
-    """Run the given command command.
+    cmd: str,
+    mode: CmdMode,
+    cwd: str | None = None,
+    fatal: bool = True,
+) -> Cmd:
+    """Run the given command.
 
     cwd: directory to run command in; defaults to WEST_TOPDIR;
     fatal: if True, program will terminate on command failure;
-           if False, error is returned;
-    capture_output: if True, stdout will be returned as string;
-                    if False, stdout is piped and an empty string is returned;
-
+           if False, error is returned.
+    mode: determines how the command is run and how the result is handled; see enum.
+    silent: if True, prints out "Running <cmd> in <cwd>" before running the command;
+            if False, does not print anything.
     Only OS agnostic commands (such as git, python or west) should be used.
     """
     if cwd is None:
         cwd = get_west_topdir()
 
-    try:
-        if not silent:
-            log.inf(f"Running `{cmd}` in `{cwd}`")
-        out = subprocess.run(  # noqa: S602
-            cmd,
-            shell=True,
+    result = Cmd()
+    result.cmd = cmd
+
+    _CMD_HISTORY.append(result)
+
+    pipe: int | None = 0
+    if mode == CmdMode.BACKGROUND:
+        pipe, slave_fd = pty.openpty()
+        slave_name = os.ttyname(slave_fd)
+        log.inf(
+            f"Running command in background ({slave_name}).",
+            cmd=cmd,
             cwd=cwd,
-            capture_output=capture_output,
-            text=True,
-            check=True,
-            env=os.environ,
+            monitor=f"while true; do picocom --quiet {slave_name} || sleep 5; done",
         )
-        stdout: str = ""
-        if out.stdout:
-            stdout = out.stdout.strip()
-            log.dbg(stdout)
-        return CmdResult(0, stdout)
-    except FileNotFoundError:
-        log.fatal(f"Invalid working directory {cwd}")
-    except subprocess.CalledProcessError as e:
-        if fatal:
-            log.fatal(f"Cmd failed: {e}")
-        else:
-            return CmdResult(e.returncode, e.stderr)
+    elif mode == CmdMode.FOREGROUND:
+        pipe = None
+        log.inf("Running command in foreground.", cmd=cmd, cwd=cwd)
+    else:
+        pipe = subprocess.PIPE
+
+    def run() -> None:
+        with result.ready:
+            try:
+                result.proc = subprocess.Popen(  # noqa: S602
+                    cmd,
+                    shell=True,
+                    cwd=cwd,
+                    text=True,
+                    stdout=pipe,
+                    stderr=pipe,
+                    stdin=pipe,
+                    env=os.environ,
+                )
+                stdout, stderr = result.proc.communicate()
+                result.proc.wait()
+                result.code = result.proc.returncode
+
+                if result.code == 0:
+                    result.stdout = stdout.strip() if stdout else f"code {result.code}"
+                elif result.code in (-signal.SIGINT, -signal.SIGTERM):
+                    log.wrn(f"Command `{result.cmd}` was terminated")
+                else:
+                    result.stdout = stderr.strip() if stderr else f"code {result.code}"
+                    if fatal:
+                        log.fatal(f"Cmd `{result.cmd}` failed: {result.stdout}")
+
+            except FileNotFoundError:
+                log.fatal(f"Invalid working directory {cwd}")
+
+    result.thread = Thread(target=run)
+    result.thread.start()
+
+    if mode == CmdMode.BACKGROUND:
+        return result
+    result.thread.join()
+    return result
+
+
+def _cleanup(signal_number: int, _frame: Any) -> Never:  # noqa: ANN401
+    log.wrn(f"Received signal {signal_number}. Terminating ongoing processes...")
+    # Terminate in reverse order since newer commands may depend on older ones:
+    for cmd in reversed(_CMD_HISTORY):
+        if cmd.proc and cmd.proc.poll() is None:
+            try:
+                cmd.proc.wait(0.1)
+            except subprocess.TimeoutExpired:
+                cmd.proc.send_signal(signal.SIGTERM)
+                cmd.proc.wait(0.1)
+
+        if cmd.thread:
+            cmd.thread.join()
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, _cleanup)
 
 
 def install_system_packages(packages: list[str]) -> None:
@@ -68,7 +142,7 @@ def install_system_packages(packages: list[str]) -> None:
         msg: str = f"Unsupported platform: {sys.platform}"
         raise NotImplementedError(msg)
 
-    run_command(" ".join([exe, *packages]))
+    run_command(" ".join([exe, *packages]), mode=CmdMode.FOREGROUND)
 
 
 def source_environment(env_file_path: str) -> None:
@@ -83,4 +157,4 @@ def source_environment(env_file_path: str) -> None:
 
 @cache
 def get_west_topdir() -> str:
-    return run_command("west topdir", cwd=".", capture_output=True, silent=True).stdout
+    return run_command("west topdir", mode=CmdMode.CAPTURE_RESULT, cwd=".").stdout
