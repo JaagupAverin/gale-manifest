@@ -69,3 +69,47 @@ gale emulate sensor
 ### Pinout
 
 ![pinout](res/esp32-c3-pinout.png)
+
+# For new project consider:
+
+## Tooling:
+
+- Use Static Code Analysis: https://docs.zephyrproject.org/latest/develop/sca/index.html
+- Use sysbuild for multi-target project: https://docs.zephyrproject.org/latest/build/sysbuild/index.html#adding-zephyr-applications-to-sysbuild
+
+## Testing:
+
+- ZTest for unit testing: https://docs.zephyrproject.org/latest/develop/sca/index.html
+- Advanced testing with:
+  - Device emulators: https://docs.zephyrproject.org/latest/hardware/emulator/index.html
+  - Simulators: https://docs.zephyrproject.org/latest/boards/native/doc/arch_soc.html
+  - Test runner: https://docs.zephyrproject.org/latest/develop/test/twister.html
+
+## Features:
+
+- Functionality:
+  - Zbus (inter-thread communication channel): https://docs.zephyrproject.org/latest/services/zbus/index.html
+  - Reference-counting On/Off manager: https://docs.zephyrproject.org/latest/services/resource_management/index.html
+  - Async notifications: https://docs.zephyrproject.org/latest/services/notify.html
+  - State machine skeleton: https://docs.zephyrproject.org/latest/services/smf/index.html#overview
+  - Settings: https://docs.zephyrproject.org/latest/services/storage/settings/index.html
+  - Task watchdog: https://docs.zephyrproject.org/latest/services/task_wdt/index.html
+  - Retention storage: https://docs.zephyrproject.org/latest/services/retention/index.html
+  - RTIO for real-time high performance processing: https://docs.zephyrproject.org/latest/services/rtio/index.html
+  - CRC/JSON: https://docs.zephyrproject.org/latest/services/misc.html#json
+  - Utils: https://docs.zephyrproject.org/latest/doxygen/html/group__sys-util.html
+- Debugging:
+  - Remote GDB debugging: https://docs.zephyrproject.org/latest/services/debugging/gdbstub.html#gdb-stub
+  - Breakpoint-while-running: https://docs.zephyrproject.org/latest/services/debugging/debugmon.html#cortex-m-debug-monitor
+  - Runtime address inspection: https://docs.zephyrproject.org/latest/services/debugging/symtab.html
+- Misc:
+  - Consider devicetree user nodes: https://docs.zephyrproject.org/latest/build/dts/zephyr-user-node.html
+  - Binary descriptors: https://docs.zephyrproject.org/latest/build/dts/bindings.html#dt-bindings
+  - Deffered device init: https://docs.zephyrproject.org/latest/kernel/drivers/index.html#deferred-initialization
+  - Code relocation: https://docs.zephyrproject.org/latest/kernel/code-relocation.html
+
+## References:
+
+- DTS bindings: https://docs.zephyrproject.org/latest/build/dts/api/bindings.html
+- KConfig: https://docs.zephyrproject.org/latest/kconfig.html
+- HALs: https://docs.zephyrproject.org/latest/develop/manifest/index.html

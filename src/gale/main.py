@@ -99,8 +99,11 @@ def emulate(app: AppEnum, debug: Annotated[bool, typer.Option("--debug", help="E
 
     build_dir: str = f"{project.path}/build_qemu"
     extra_conf: str = f"{SHARED_PROJECT.path}/kconfig/qemu.conf"
+    extra_overlay: str = f"{SHARED_PROJECT.path}/devicetree/qemu.overlay"
     target: str = "debugserver_qemu" if debug else "run"
-    command: str = f"west build -d {build_dir} --extra-conf {extra_conf} -t {target}"
+    command: str = (
+        f"west build -d {build_dir} --extra-conf {extra_conf} --extra-dtc-overlay {extra_overlay} -t {target}"
+    )
 
     if debug:
         project_cache: ProjectCache = ProjectCache(Path(build_dir))
@@ -118,6 +121,8 @@ def emulate(app: AppEnum, debug: Annotated[bool, typer.Option("--debug", help="E
     else:
         run_command(command, mode=CmdMode.FOREGROUND, cwd=project.path)
 
+
+# TODO: Look into getting console shell working :)
 
 if __name__ == "__main__":
     app()
