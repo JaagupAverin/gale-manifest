@@ -16,19 +16,16 @@ A Zephyr demo that shows how to set up a multi-application project with a shared
 
 ### Datasheets
 
-- [ESP32-C3-DevKit-RUST Zephyr page](https://docs.zephyrproject.org/latest/boards/espressif/esp32c3_rust/doc/index.html)
-- [ESP32-C3-DevKit-RUST Github](https://github.com/esp-rs/esp-rust-board)
-- [ESP32-C3-MINI-1 Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf)
-  - Pin definitions in chapter 3 (page 10)
-- [ESP32-C3 series Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf)
-  - Pin definitions in chapter 2 (page 10)
-  - CPU and peripheral details in chapter 3
+- [nRF54L15 Datasheet](https://docs.nordicsemi.com/bundle/ps_nrf54L15/page/keyfeatures_html5.html)
+- [nrf54L15 HW](https://docs.nordicsemi.com/bundle/ug_nrf54l15_dk/page/UG/nRF54L15_DK/intro/intro.html)
 
 ## Quickstart:
 
 Install [west](https://docs.zephyrproject.org/latest/develop/west/install.html) for Zephyr management.
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for Python dependency management.
+
+Install [nrfutil](https://www.nordicsemi.com/Products/Development-tools/nRF-Util) for nRF tooling.
 
 Clone all repositories:
 
@@ -42,11 +39,17 @@ Configure environment and install dependencies:
 
 ```bash
 cd gale
-uv add -r requirements.txt
+uv add -r projects/zephyr/scripts/requirements.txt
 uv sync
 source .venv/bin/activate
 west config zephyr.base gale/projects/zephyr
 west sdk install
+```
+
+Install nRF tools:
+
+```bash
+nrfutil install device
 ```
 
 ### Commands for development:
@@ -56,19 +59,14 @@ be available inside the virtual environment after calling `uv sync` from above.
 
 See `gale --help` for all commands. Install shell completions using `gale --install-completion`.
 
-e.g. for simulating an appliaction:
+e.g. for simulating an application:
 
 ```bash
-# Install QEMU dependencies:
 gale setup
-gale emulate sensor
+gale simulate hmi
 ```
 
 ## Appendix
-
-### Pinout
-
-![pinout](res/esp32-c3-pinout.png)
 
 # For new project consider:
 

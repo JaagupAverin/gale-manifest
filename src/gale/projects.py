@@ -1,19 +1,9 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import cache
+from pathlib import Path
 
-
-@cache
-def get_manifest_dir() -> str:
-    from gale.util import get_west_topdir
-
-    return f"{get_west_topdir()}/gale"
-
-
-@cache
-def get_projects_dir() -> str:
-    return f"{get_manifest_dir()}/projects"
+from gale.util import get_manifest_dir, get_projects_dir
 
 
 class ProjectType(Enum):
@@ -25,12 +15,12 @@ class ProjectType(Enum):
 @dataclass
 class Project:
     name: str
-    path_getter: Callable[[], str]
+    path_getter: Callable[[], Path]
     type: ProjectType
     is_fork: bool = field(default=False)
 
     @property
-    def path(self) -> str:
+    def path(self) -> Path:
         """Returns path from path_getter.
 
         This indirection is needed because:
@@ -49,34 +39,26 @@ MANIFEST_PROJECT = Project(
 
 SENSOR_APP_PROJECT = Project(
     "sensor-app",
-    lambda: f"{get_projects_dir()}/sensor_app",
+    lambda: get_projects_dir() / "sensor_app",
     ProjectType.App,
 )
 
 HMI_APP_PROJECT = Project(
     "hmi-app",
-    lambda: f"{get_projects_dir()}/hmi_app",
+    lambda: get_projects_dir() / "hmi_app",
     ProjectType.App,
 )
 
 SHARED_PROJECT = Project(
     "shared",
-    lambda: f"{get_projects_dir()}/shared",
+    lambda: get_projects_dir() / "shared",
     ProjectType.Dependency,
 )
 
 ZEPHYR_PROJECT = Project(
     "zephyr",
-    lambda: f"{get_projects_dir()}/zephyr",
+    lambda: get_projects_dir() / "zephyr",
     ProjectType.Dependency,
-    is_fork=True,
-)
-
-HAL_ESPRESSIF_PROJECT = Project(
-    "hal_espressif",
-    lambda: f"{get_projects_dir()}/modules/hal/espressif",
-    ProjectType.Dependency,
-    is_fork=True,
 )
 
 PROJECTS: list[Project] = [
@@ -85,5 +67,17 @@ PROJECTS: list[Project] = [
     HMI_APP_PROJECT,
     SHARED_PROJECT,
     ZEPHYR_PROJECT,
-    HAL_ESPRESSIF_PROJECT,
 ]
+
+
+class ProjectEnum(str, Enum):
+    HMI_APP = "hmi"
+    SENSOR_APP = "sensor"
+
+
+def get_project(project: ProjectEnum) -> Project:
+    match project:
+        case ProjectEnum.HMI_APP:
+            return HMI_APP_PROJECT
+        case ProjectEnum.SENSOR_APP:
+            return SENSOR_APP_PROJECT

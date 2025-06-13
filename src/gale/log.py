@@ -1,10 +1,10 @@
 import logging
-import sys
+import os
 from functools import cache
 from typing import Any, NoReturn
 
 import structlog
-from rich import box, pretty
+from rich import pretty
 from rich.box import Box
 from rich.console import Console, ConsoleRenderable
 from rich.highlighter import ReprHighlighter
@@ -25,14 +25,16 @@ _custom_log_themes = Theme(
 )
 
 DETAILS_BOX: Box = Box(
-    "╭──╮\n"  # /
-    "│  │\n"  # /
-    "├──┤\n"  # /
-    "│  │\n"  # /
-    "├──┤\n"  # /
-    "├──┤\n"  # /
-    "│  │\n"  # /
-    "╰──╯\n"  # /
+    """
+╭──╮
+│  │
+├──┤
+│  │
+├──┤
+├──┤
+│  │
+╰──╯
+""".strip()
 )
 
 
@@ -123,4 +125,4 @@ def err(msg: str, **kwargs: Any) -> None:  # noqa: ANN401
 
 def fatal(msg: str, **kwargs: Any) -> NoReturn:  # noqa: ANN401
     err(msg, **kwargs)
-    sys.exit(-1)
+    os._exit(-1)

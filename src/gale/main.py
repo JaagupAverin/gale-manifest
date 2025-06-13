@@ -1,14 +1,15 @@
-from enum import Enum
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from gale import log
+from gale.boards import BoardEnum, get_board
+from gale.build import Build
 from gale.common import set_verbose
 from gale.project_cache import ProjectCache
-from gale.projects import HMI_APP_PROJECT, PROJECTS, SENSOR_APP_PROJECT, SHARED_PROJECT, Project
-from gale.util import CmdMode, in_venv, install_system_packages, run_command, source_environment
+from gale.projects import PROJECTS, SHARED_PROJECT, Project, ProjectEnum, get_project
+from gale.util import CmdMode, get_bsim_dir, in_venv, run_command
 
 app: typer.Typer = typer.Typer(name="woid", rich_markup_mode="rich", no_args_is_help=True)
 
@@ -29,6 +30,9 @@ def gale(
     if verbose:
         set_verbose(True)
 
+    if not in_venv():
+        log.fatal("This tool must be run from within a virtual environment; create and activate .venv as per README!")
+
     if ctx.invoked_subcommand:
         log.dbg(f"Running command `{ctx.invoked_subcommand}`.")
 
@@ -39,11 +43,12 @@ def setup() -> None:
 
     Usage: gale setup
     """
-    if not in_venv():
-        log.fatal("This script must be run from within a virtual environment.")
-
-    log.inf("Installing dependencies for QEMU...")
-    install_system_packages(["qemu-system", "qemu-user-static"])
+    run_command(
+        cmd="make everything -j 8",
+        desc="Building BabbleSim",
+        mode=CmdMode.FOREGROUND,
+        cwd=get_bsim_dir(),
+    )
 
 
 @app.command()
@@ -53,12 +58,17 @@ def checkout(branch: str) -> None:
     Useful during development when working with multiple repositories that should point to the same branch.
     Usage: gale checkout <branch>
     """
-    log.inf(f"Checking out branch '{branch}' in all gale repositories...")
     cmd: str = f"git fetch && git switch {branch} || git switch --track origin/{branch}"
 
     user_projects: list[Project] = [project for project in PROJECTS if not project.is_fork]
     for project in user_projects:
-        run_command(cmd, mode=CmdMode.FOREGROUND, cwd=project.path, fatal=False)
+        run_command(
+            cmd=cmd,
+            desc=f"Checking out branch '{branch}' in project '{project.name}'",
+            mode=CmdMode.FOREGROUND,
+            cwd=project.path,
+            fatal=False,
+        )
 
 
 @app.command()
@@ -68,43 +78,43 @@ def push(message: str) -> None:
     Useful during development when working with multiple repositories.
     Usage: gale push <message>
     """
-    log.inf("Committing and pushing changes in all gale repositories...")
     cmd: str = f'git add . && git commit -m "{message}" && git push'
 
     user_projects: list[Project] = [project for project in PROJECTS if not project.is_fork]
     for project in user_projects:
-        run_command(cmd, mode=CmdMode.FOREGROUND, cwd=project.path, fatal=False)
-
-
-class AppEnum(str, Enum):
-    HMI_APP = "hmi"
-    SENSOR_APP = "sensor"
+        run_command(
+            cmd=cmd,
+            desc=f"Commiting and pushing changes in project '{project.name}'",
+            mode=CmdMode.FOREGROUND,
+            cwd=project.path,
+            fatal=False,
+        )
 
 
 @app.command()
-def emulate(app: AppEnum, debug: Annotated[bool, typer.Option("--debug", help="Enable debug mode.")] = False) -> None:
-    """Run the given application in QEMU. Usage: gale emulate <app>."""
-    if not in_venv():
-        log.fatal("This script must be run from within a virtual environment.")
+def build(
+    project: ProjectEnum,
+    board: BoardEnum,
+    target: str,
+) -> None:
+    """Build the given target. Usage: gale build <project> <board> <target>."""
+    build: Build = Build(get_project(project), get_board(board))
+    build.build_target(target)
 
-    project: Project | None = None
-    if app == AppEnum.HMI_APP:
-        project = HMI_APP_PROJECT
-    elif app == AppEnum.SENSOR_APP:
-        project = SENSOR_APP_PROJECT
 
-    # Source the environment file, which exports the QEMU board value, etc:
-    env_qemu: str = f"{SHARED_PROJECT.path}/env_qemu"
-    source_environment(env_qemu)
+@app.command()
+def run(
+    project: ProjectEnum,
+    board: BoardEnum,
+    target: str,
+    debug: Annotated[bool, typer.Option("--debug", help="Enable debug server.")] = False,
+) -> None:
+    build: Build = Build(get_project(project), get_board(board))
+    build.build_target(target)
 
-    build_dir: str = f"{project.path}/build_qemu"
-    extra_conf: str = f"{SHARED_PROJECT.path}/kconfig/qemu.conf"
-    extra_overlay: str = f"{SHARED_PROJECT.path}/devicetree/qemu.overlay"
-    target: str = "debugserver_qemu" if debug else "run"
-    command: str = (
-        f"west build -d {build_dir} --extra-conf {extra_conf} --extra-dtc-overlay {extra_overlay} -t {target}"
-    )
-
+    # TODO: Fix running and debugging.
+    # TODO2: Look into build targets - think sysbuild is changing things up already?
+    # TODO3: Look into real-time bsim: https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim
     if debug:
         project_cache: ProjectCache = ProjectCache(Path(build_dir))
         gdb: str = project_cache.cmake_cache.gdb
@@ -121,8 +131,6 @@ def emulate(app: AppEnum, debug: Annotated[bool, typer.Option("--debug", help="E
     else:
         run_command(command, mode=CmdMode.FOREGROUND, cwd=project.path)
 
-
-# TODO: Look into getting console shell working :)
 
 if __name__ == "__main__":
     app()

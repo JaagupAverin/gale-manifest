@@ -6,6 +6,7 @@ import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cache
+from pathlib import Path
 from threading import Semaphore, Thread
 from typing import Any, Never
 
@@ -38,18 +39,19 @@ class CmdMode(Enum):
 
 def run_command(
     cmd: str,
+    desc: str,
     mode: CmdMode,
-    cwd: str | None = None,
+    cwd: Path | None = None,
     fatal: bool = True,
 ) -> Cmd:
     """Run the given command.
 
+    cmd: command string, e.g "apt install python";
+    desc: human readable description of what the command is doing;
+    mode: determines how the command is run and how the result is handled; see enum;
     cwd: directory to run command in; defaults to WEST_TOPDIR;
     fatal: if True, program will terminate on command failure;
            if False, error is returned.
-    mode: determines how the command is run and how the result is handled; see enum.
-    silent: if True, prints out "Running <cmd> in <cwd>" before running the command;
-            if False, does not print anything.
     Only OS agnostic commands (such as git, python or west) should be used.
     """
     if cwd is None:
@@ -66,13 +68,14 @@ def run_command(
         slave_name = os.ttyname(slave_fd)
         log.inf(
             f"Running command in background ({slave_name}).",
+            desc=desc,
             cmd=cmd,
-            cwd=cwd,
+            cwd=str(cwd.absolute()),
             monitor=f"while true; do picocom --quiet {slave_name} || sleep 5; done",
         )
     elif mode == CmdMode.FOREGROUND:
         pipe = None
-        log.inf("Running command in foreground.", cmd=cmd, cwd=cwd)
+        log.inf("Running command in foreground.", desc=desc, cmd=cmd, cwd=cwd)
     else:
         pipe = subprocess.PIPE
 
@@ -142,10 +145,14 @@ def install_system_packages(packages: list[str]) -> None:
         msg: str = f"Unsupported platform: {sys.platform}"
         raise NotImplementedError(msg)
 
-    run_command(" ".join([exe, *packages]), mode=CmdMode.FOREGROUND)
+    run_command(
+        cmd=" ".join([exe, *packages]),
+        desc=f"Installing system packages: {packages}",
+        mode=CmdMode.FOREGROUND,
+    )
 
 
-def source_environment(env_file_path: str) -> None:
+def source_environment(env_file_path: Path) -> None:
     from dotenv import load_dotenv
 
     load_dotenv(env_file_path)
@@ -156,5 +163,32 @@ def source_environment(env_file_path: str) -> None:
 
 
 @cache
-def get_west_topdir() -> str:
-    return run_command("west topdir", mode=CmdMode.CAPTURE_RESULT, cwd=".").stdout
+def get_west_topdir() -> Path:
+    return Path(
+        run_command(
+            cmd="west topdir",
+            desc="Determining WEST_TOPDIR",
+            mode=CmdMode.CAPTURE_RESULT,
+            cwd=Path(),
+        ).stdout
+    )
+
+
+@cache
+def get_manifest_dir() -> Path:
+    return Path(f"{get_west_topdir()}/gale")
+
+
+@cache
+def get_projects_dir() -> Path:
+    return Path(f"{get_manifest_dir()}/projects")
+
+
+@cache
+def get_tools_dir() -> Path:
+    return Path(f"{get_projects_dir()}/tools")
+
+
+@cache
+def get_bsim_dir() -> Path:
+    return Path(f"{get_tools_dir()}/bsim")

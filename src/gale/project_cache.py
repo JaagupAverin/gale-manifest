@@ -1,5 +1,4 @@
 import re
-from dataclasses import dataclass
 from pathlib import Path
 
 from gale import log
@@ -33,7 +32,6 @@ class CMakeCache:
         return self.get("ZEPHYR_BASE")
 
 
-@dataclass
 class ProjectCache:
     def __init__(self, build_dir: Path) -> None:
         self.build_dir: Path = build_dir
