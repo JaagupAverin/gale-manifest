@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 from gale import log
 from gale.boards import Board
 from gale.project_cache import ProjectCache
-from gale.projects import ZEPHYR_PROJECT, Project
-from gale.util import CmdMode, run_command, source_environment
+from gale.projects import Project
+from gale.util import CmdMode, get_projects_dir, run_command, source_environment
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -31,7 +31,7 @@ class Build:
         )
 
     def source_env(self) -> None:
-        os.environ["ZEPHYR_BASE"] = str(ZEPHYR_PROJECT.path.absolute())
+        os.environ["ZEPHYR_BASE"] = str(get_projects_dir() / "zephyr")
 
         if self.board.env:
             source_environment(self.board.env)
