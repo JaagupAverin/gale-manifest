@@ -55,6 +55,12 @@ SHARED_PROJECT = Project(
     ProjectType.Dependency,
 )
 
+ZEPHYR_PROJECT = Project(
+    "zephyr",
+    lambda: get_projects_dir() / "zephyr",
+    ProjectType.Dependency,
+)
+
 PROJECTS: list[Project] = [
     MANIFEST_PROJECT,
     SENSOR_APP_PROJECT,

@@ -1,11 +1,13 @@
 import os
 from typing import TYPE_CHECKING
 
+from rich import print_json
+
 from gale import log
 from gale.boards import Board
 from gale.project_cache import ProjectCache
-from gale.projects import Project
-from gale.util import CmdMode, get_projects_dir, run_command, source_environment
+from gale.projects import ZEPHYR_PROJECT, Project
+from gale.util import CmdMode, run_command, source_environment
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -19,24 +21,22 @@ class Build:
         self.project_cache: ProjectCache | None = None
 
     def _build_cmd(self, extra_args: str) -> str:
+        extra_conf = f" --extra-conf {self.board.prj_conf}" if self.board.prj_conf else ""
+        extra_dtc_overlay = f" --extra-dtc-overlay {self.board.overlay}" if self.board.overlay else ""
         return (
             "west build"
             + f" -s {self.project.path}"
             + f" -d {self.build_dir}"
-            + f" --extra-conf {self.board.prj_conf}"
-            + f" --extra-dtc-overlay {self.board.overlay}"
+            + extra_conf
+            + extra_dtc_overlay
             + f" {extra_args} "
             + " -- "
             + " -G'Ninja'"
         )
 
     def source_env(self) -> None:
-        os.environ["ZEPHYR_BASE"] = str(get_projects_dir() / "zephyr")
-
-        if self.board.env:
-            source_environment(self.board.env)
-        else:
-            log.fatal(f"Environment file for project '{self.project.name}' does not exist.", file=self.board.env)
+        os.environ["ZEPHYR_BASE"] = str(ZEPHYR_PROJECT.path.absolute())
+        source_environment(self.board.env)
 
     def generate_cmake(self) -> None:
         self.source_env()

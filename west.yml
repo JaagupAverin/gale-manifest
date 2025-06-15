@@ -17,10 +17,8 @@ manifest:
   projects:
     - name: gale-sensor-app
       path: gale/projects/sensor_app
-
     - name: gale-hmi-app
       path: gale/projects/hmi_app
-
     - name: gale-shared
       path: gale/projects/shared
 
@@ -30,5 +28,18 @@ manifest:
       west-commands: scripts/west-commands.yml
       import:
         path-prefix: gale/projects/
+        path-allowlist:
+          # Core dependencies:
+          - zephyr
+          - nrfxlib
+          - hal/nordic
+          - cmsis_6
+          # Optional dependencies:
+          - mcuboot
+          # BabbleSim:
+          - bsim
+          - bsim/components
+          - bsim/components/*
+          - nrf_hw_models
 
   group-filter: [+babblesim]

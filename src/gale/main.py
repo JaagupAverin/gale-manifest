@@ -112,7 +112,8 @@ def run(
     build: Build = Build(get_project(project), get_board(board))
     build.build_target(target)
 
-    # TODO: Fix running and debugging.
+    # TODO0: Probably try to manually install nRF SDK in west.yml, since by default it takes WAYY to much stuff. nRF toolchain is a load of useless stuff.
+    # TODO1: Fix running and debugging.
     # TODO2: Look into build targets - think sysbuild is changing things up already?
     # TODO3: Look into real-time bsim: https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim
     if debug:

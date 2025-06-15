@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+from gale import log
 from gale.projects import SHARED_PROJECT
 
 
@@ -12,9 +13,11 @@ class Board:
     dir_getter: Callable[[], Path]
 
     @property
-    def env(self) -> Path | None:
+    def env(self) -> Path:
         file = self.dir_getter() / "environment"
-        return file if file.exists() else None
+        if not file.exists():
+            log.fatal(f"Environment file for board '{self.name}' not found", file=str(file.absolute()))
+        return file
 
     @property
     def prj_conf(self) -> Path | None:

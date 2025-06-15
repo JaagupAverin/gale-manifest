@@ -1,0 +1,6 @@
+{
+    "python.analysis.typeCheckingMode": "off",
+    "nrf-connect.applications": [
+        "${workspaceFolder}/projects/hmi_app"
+    ]
+}
