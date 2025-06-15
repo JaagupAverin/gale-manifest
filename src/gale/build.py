@@ -1,12 +1,8 @@
-import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self, TypeGuard
 
-from rich import print_json
-
-from gale import log
 from gale.boards import Board
 from gale.project_cache import ProjectCache
-from gale.projects import ZEPHYR_PROJECT, Project
+from gale.projects import Project
 from gale.util import CmdMode, run_command, source_environment
 
 if TYPE_CHECKING:
@@ -21,25 +17,17 @@ class Build:
         self.project_cache: ProjectCache | None = None
 
     def _build_cmd(self, extra_args: str) -> str:
-        extra_conf = f" --extra-conf {self.board.prj_conf}" if self.board.prj_conf else ""
-        extra_dtc_overlay = f" --extra-dtc-overlay {self.board.overlay}" if self.board.overlay else ""
         return (
             "west build"
             + f" -s {self.project.path}"
             + f" -d {self.build_dir}"
-            + extra_conf
-            + extra_dtc_overlay
             + f" {extra_args} "
             + " -- "
             + " -G'Ninja'"
         )
 
-    def source_env(self) -> None:
-        os.environ["ZEPHYR_BASE"] = str(ZEPHYR_PROJECT.path.absolute())
+    def generate_cmake(self) -> ProjectCache:
         source_environment(self.board.env)
-
-    def generate_cmake(self) -> None:
-        self.source_env()
 
         generate_cmd: str = self._build_cmd("--cmake-only")
         run_command(
@@ -48,9 +36,10 @@ class Build:
             mode=CmdMode.FOREGROUND,
         )
         self.project_cache = ProjectCache(self.build_dir)
+        return self.project_cache
 
-    def build_target(self, target: str) -> None:
-        self.source_env()
+    def build_target(self, target: str) -> ProjectCache:
+        source_environment(self.board.env)
 
         build_cmd: str = self._build_cmd(f"-t {target}")
         run_command(
@@ -58,4 +47,5 @@ class Build:
             desc=f"Building target '{target}' for project '{self.project.name}:{self.board.name}'",
             mode=CmdMode.FOREGROUND,
         )
-        self.project_cache = ProjectCache(self.build_dir)
+        self.project_cache = ProjectCache(self.build_dir / target)
+        return self.project_cache

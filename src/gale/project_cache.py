@@ -1,10 +1,13 @@
 import re
 from pathlib import Path
+from typing import override
 
 from gale import log
 
 
 class CMakeCache:
+    """Interface around CmakeCache.txt."""
+
     def __init__(self, path: Path) -> None:
         self.path: Path = path
         self.values: dict[str, str | None] = {}
@@ -31,10 +34,17 @@ class CMakeCache:
     def zephyr_base(self) -> str:
         return self.get("ZEPHYR_BASE")
 
+    @property
+    def native_executable(self) -> str:
+        return self.get("BYPRODUCT_KERNEL_EXE_NAME")
+
 
 class ProjectCache:
+    """Stores generated values for a project, such as devicetree, kconfig or CMake values."""
+
     def __init__(self, build_dir: Path) -> None:
         self.build_dir: Path = build_dir
+
         if not self.build_dir.exists():
             log.fatal(f"Build directory {self.build_dir} does not exist")
 

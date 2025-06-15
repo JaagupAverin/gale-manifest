@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Annotated
 
@@ -8,7 +9,7 @@ from gale.boards import BoardEnum, get_board
 from gale.build import Build
 from gale.common import set_verbose
 from gale.project_cache import ProjectCache
-from gale.projects import PROJECTS, SHARED_PROJECT, Project, ProjectEnum, get_project
+from gale.projects import PROJECTS, SHARED_PROJECT, ZEPHYR_PROJECT, Project, ProjectEnum, get_project
 from gale.util import CmdMode, get_bsim_dir, in_venv, run_command
 
 app: typer.Typer = typer.Typer(name="woid", rich_markup_mode="rich", no_args_is_help=True)
@@ -29,6 +30,8 @@ def gale(
     """Workspace management tool for Gale."""
     if verbose:
         set_verbose(True)
+
+    os.environ["ZEPHYR_BASE"] = str(ZEPHYR_PROJECT.path.absolute())
 
     if not in_venv():
         log.fatal("This tool must be run from within a virtual environment; create and activate .venv as per README!")
@@ -110,12 +113,20 @@ def run(
     debug: Annotated[bool, typer.Option("--debug", help="Enable debug server.")] = False,
 ) -> None:
     build: Build = Build(get_project(project), get_board(board))
-    build.build_target(target)
+    cache = build.build_target(target)
 
-    # TODO0: Probably try to manually install nRF SDK in west.yml, since by default it takes WAYY to much stuff. nRF toolchain is a load of useless stuff.
-    # TODO1: Fix running and debugging.
-    # TODO2: Look into build targets - think sysbuild is changing things up already?
-    # TODO3: Look into real-time bsim: https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim
+    # TODO1: Fix debugging.
+    # TODO2: Reduce excessive generation and build if not needed.
+    # TODO3: Look into build targets - think sysbuild is changing things up already?
+    # TODO4: Look into real-time bsim: https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim
+    if build.board.is_bsim:
+        exe = f"{cache.cmake_cache.native_executable} -nosim"
+        run_command(f"{exe}", desc="Running built executable natively.", mode=CmdMode.FOREGROUND)
+    else:
+        pass
+        # Flash...
+
+    return
     if debug:
         project_cache: ProjectCache = ProjectCache(Path(build_dir))
         gdb: str = project_cache.cmake_cache.gdb

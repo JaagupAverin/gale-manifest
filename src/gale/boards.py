@@ -20,14 +20,8 @@ class Board:
         return file
 
     @property
-    def prj_conf(self) -> Path | None:
-        file = self.dir_getter() / "app.conf"
-        return file if file.exists() else None
-
-    @property
-    def overlay(self) -> Path | None:
-        file = self.dir_getter() / "app.overlay"
-        return file if file.exists() else None
+    def is_bsim(self) -> bool:
+        return "bsim" in self.name
 
 
 NRF54L15_DK_BOARD = Board(
