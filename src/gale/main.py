@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import typer
 
@@ -8,9 +8,11 @@ from gale import log
 from gale.boards import BoardEnum, get_board
 from gale.build import Build
 from gale.common import set_verbose
-from gale.project_cache import ProjectCache
-from gale.projects import PROJECTS, SHARED_PROJECT, ZEPHYR_PROJECT, Project, ProjectEnum, get_project
+from gale.projects import PROJECTS, ZEPHYR_PROJECT, Project, ProjectEnum, get_project
 from gale.util import CmdMode, get_bsim_dir, in_venv, run_command
+
+if TYPE_CHECKING:
+    from gale.project_cache import BuildCache
 
 app: typer.Typer = typer.Typer(name="woid", rich_markup_mode="rich", no_args_is_help=True)
 
@@ -99,10 +101,11 @@ def build(
     project: ProjectEnum,
     board: BoardEnum,
     target: str,
+    extra_args: Annotated[list[str], typer.Argument(help="Extra arguments to pass to 'west build'")],
 ) -> None:
-    """Build the given target. Usage: gale build <project> <board> <target>."""
+    """Build the given target. Usage: gale build <project> <board> <target> [-- <extra_args>]."""
     build: Build = Build(get_project(project), get_board(board))
-    build.build_target(target)
+    build.build_target(target, " ".join(extra_args))
 
 
 @app.command()
@@ -110,39 +113,49 @@ def run(
     project: ProjectEnum,
     board: BoardEnum,
     target: str,
-    debug: Annotated[bool, typer.Option("--debug", help="Enable debug server.")] = False,
+    extra_args: Annotated[list[str] | None, typer.Argument(help="Extra arguments to pass to the runner")] = None,
 ) -> None:
+    """Run the given target. Usage: gale run <project> <board> <target> [-- <extra_args>]."""
     build: Build = Build(get_project(project), get_board(board))
-    cache = build.build_target(target)
+    cache: BuildCache = build.get_build_cache(target)
 
-    # TODO1: Fix debugging.
-    # TODO2: Reduce excessive generation and build if not needed.
-    # TODO3: Look into build targets - think sysbuild is changing things up already?
-    # TODO4: Look into real-time bsim: https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim
     if build.board.is_bsim:
-        exe = f"{cache.cmake_cache.native_executable} -nosim"
-        run_command(f"{exe}", desc="Running built executable natively.", mode=CmdMode.FOREGROUND)
-    else:
-        pass
-        # Flash...
+        exe = Path(cache.cmake_cache.exe_path)
+        if not exe.exists():
+            log.fatal(f"Output binary '{exe}' does not exist; use build first.")
 
-    return
-    if debug:
-        project_cache: ProjectCache = ProjectCache(Path(build_dir))
-        gdb: str = project_cache.cmake_cache.gdb
-        zephyr_base: str = project_cache.cmake_cache.zephyr_base
-        run_command(command, mode=CmdMode.BACKGROUND, cwd=project.path)
-
-        elf_path = f"{build_dir}/zephyr/zephyr.elf"
-        gdbconf = f"-x {SHARED_PROJECT.path}/gdb/.qemu_gdbconf"
-        prep_zephyr = f"-ex='dir {zephyr_base}'"
-        run_command(
-            f"{gdb} {prep_zephyr} {gdbconf} {elf_path}",
-            mode=CmdMode.FOREGROUND,
-        )
+        extra = " ".join(extra_args) if extra_args else ""
+        run_cmd = f"{exe} -nosim {extra}"
+        # TODO1: Figure out how to prevent bsim from spamming output to primary console!
+        run_command(run_cmd, desc=f"Running '{target}' natively", mode=CmdMode.REPLACE)
     else:
-        run_command(command, mode=CmdMode.FOREGROUND, cwd=project.path)
+        log.fatal("Direct running on board not yet implemented.")
+
+
+@app.command()
+def debug(
+    project: ProjectEnum,
+    board: BoardEnum,
+    target: str,
+) -> None:
+    """Debug the given target. Usage: gale debug <project> <board> <target>."""
+    build: Build = Build(get_project(project), get_board(board))
+    cache: BuildCache = build.get_build_cache(target)
+
+    if build.board.is_bsim:
+        exe = Path(cache.cmake_cache.exe_path)
+        if not exe.exists():
+            log.fatal(f"Output binary '{exe}' does not exist; use build first.")
+
+        dbg_cmd = f"{cache.cmake_cache.gdb} --tui --args {exe} -nosim -uart1_pty_attach"
+        # TODO2: Test out this with the new REPLACE command: is --tui still causing issues?
+        run_command(dbg_cmd, desc=f"Debugging '{target}' natively", mode=CmdMode.REPLACE)
+    else:
+        log.fatal("Direct running on board not yet implemented.")
 
 
 if __name__ == "__main__":
     app()
+
+    # TODO3: Look into build targets - think sysbuild is changing things up already?
+    # TODO4: Look into real-time bsim: https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim

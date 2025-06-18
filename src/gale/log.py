@@ -26,15 +26,15 @@ _custom_log_themes = Theme(
 
 DETAILS_BOX: Box = Box(
     """
-╭──╮
-│  │
-├──┤
-│  │
-├──┤
-├──┤
-│  │
-╰──╯
-""".strip()
+╭──╮\n
+    \n
+├──┤\n
+    \n
+├──┤\n
+├──┤\n
+    \n
+╰──╯\n
+""".replace("\n\n", "\n").strip()
 )
 
 

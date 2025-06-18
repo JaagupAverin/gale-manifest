@@ -1,6 +1,5 @@
 import re
 from pathlib import Path
-from typing import override
 
 from gale import log
 
@@ -35,11 +34,15 @@ class CMakeCache:
         return self.get("ZEPHYR_BASE")
 
     @property
-    def native_executable(self) -> str:
+    def exe_path(self) -> str:
         return self.get("BYPRODUCT_KERNEL_EXE_NAME")
 
+    @property
+    def elf_path(self) -> str:
+        return self.get("BYPRODUCT_KERNEL_ELF_NAME")
 
-class ProjectCache:
+
+class BuildCache:
     """Stores generated values for a project, such as devicetree, kconfig or CMake values."""
 
     def __init__(self, build_dir: Path) -> None:
@@ -53,3 +56,7 @@ class ProjectCache:
             log.fatal(f"CMakeCache {self.cmake_cache_file} does not exist")
         self.cmake_cache: CMakeCache = CMakeCache(self.cmake_cache_file)
         log.dbg("CMakeCache parsed", cache=self.cmake_cache.values)
+
+    @staticmethod
+    def exists(build_dir: Path) -> bool:
+        return build_dir.exists() and (build_dir / "CMakeCache.txt").exists()

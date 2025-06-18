@@ -1,5 +1,6 @@
 import os
 import pty
+import shlex
 import signal
 import subprocess
 import sys
@@ -9,6 +10,8 @@ from functools import cache
 from pathlib import Path
 from threading import Semaphore, Thread
 from typing import Any, Never
+
+from dotenv import load_dotenv
 
 from gale import log
 
@@ -35,6 +38,7 @@ class CmdMode(Enum):
     FOREGROUND = 0  # Run program with stdout/stdin piped to active terminal;
     BACKGROUND = 1  # Run program with stdout/stdin piped to a new virtual port;
     CAPTURE_RESULT = 2  # Run program without live stdout/stdin - only return result;
+    REPLACE = 3  # Terminate Python and replace the terminal with the given command;
 
 
 def run_command(
@@ -76,7 +80,17 @@ def run_command(
     elif mode == CmdMode.FOREGROUND:
         pipe = None
         log.inf("Running command in foreground.", desc=desc, cmd=cmd, cwd=cwd)
+    elif mode == CmdMode.REPLACE:
+        # This will terminate the current Python process, and instead pass the path and environment
+        # to the new process that shall inherit this terminal. This is required for cases where
+        # Python causes issues as the middle-man (e.g. catching interrupt signals, etc).
+        log.inf("Running command in foreground (replacing Python!).", desc=desc, cmd=cmd, cwd=cwd)
+        args = shlex.split(cmd)
+        os.chdir(cwd)
+        os.execve(args[0], args, os.environ)  # noqa: S606
+        return None
     else:
+        log.dbg("Running command for its stdout value.", cmd=cmd)
         pipe = subprocess.PIPE
 
     def run() -> None:
@@ -153,8 +167,6 @@ def install_system_packages(packages: list[str]) -> None:
 
 
 def source_environment(env_file_path: Path) -> None:
-    from dotenv import load_dotenv
-
     load_dotenv(env_file_path)
     # Print all environment variables containing the words "zephyr", "west", or other interesting keywords:
     for key, value in os.environ.items():
