@@ -1,23 +1,16 @@
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
 from gale.util import get_manifest_dir, get_projects_dir
 
 
-class ProjectType(Enum):
-    App = "app"
-    Dependency = "dependency"
-    Manifest = "manifest"
-
-
 @dataclass
 class Project:
     name: str
     path_getter: Callable[[], Path]
-    type: ProjectType
-    is_fork: bool = field(default=False)
+    upstream: bool
 
     @property
     def path(self) -> Path:
@@ -34,31 +27,31 @@ class Project:
 MANIFEST_PROJECT = Project(
     "manifest",
     lambda: get_manifest_dir(),
-    ProjectType.Manifest,
+    upstream=False,
 )
 
 SENSOR_APP_PROJECT = Project(
     "sensor-app",
     lambda: get_projects_dir() / "sensor_app",
-    ProjectType.App,
+    upstream=False,
 )
 
 HMI_APP_PROJECT = Project(
     "hmi-app",
     lambda: get_projects_dir() / "hmi_app",
-    ProjectType.App,
+    upstream=False,
 )
 
 SHARED_PROJECT = Project(
     "shared",
     lambda: get_projects_dir() / "shared",
-    ProjectType.Dependency,
+    upstream=False,
 )
 
 ZEPHYR_PROJECT = Project(
     "zephyr",
     lambda: get_projects_dir() / "zephyr",
-    ProjectType.Dependency,
+    upstream=True,
 )
 
 PROJECTS: list[Project] = [
@@ -66,6 +59,7 @@ PROJECTS: list[Project] = [
     SENSOR_APP_PROJECT,
     HMI_APP_PROJECT,
     SHARED_PROJECT,
+    ZEPHYR_PROJECT,
 ]
 
 

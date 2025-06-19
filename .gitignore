@@ -1,5 +1,5 @@
 **/__pycache__/**
 .venv
 .zed
-
+.clangd
 projects
