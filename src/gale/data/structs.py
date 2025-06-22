@@ -54,11 +54,11 @@ class Target:
     build_subdir: str | None = None
     """Subdirectory INSIDE the build/ directory itself; i.e. for multi-target builds like sysbuild."""
 
-    post_build_callback: Callable[[BuildCache], None] | None = None
+    post_build_handler: Callable[[BuildCache], None] | None = None
     """Callback function called after building the target."""
-    run_callback: Callable[[BuildCache, Args], None] | None = None
+    run_handler: Callable[[BuildCache, Args], None] | None = None
     """Callback function that implements running the target."""
-    debug_callback: Callable[[BuildCache, Args], None] | None = None
+    debug_handler: Callable[[BuildCache, Args], None] | None = None
     """Callback function that implements debugging the target."""
 
 

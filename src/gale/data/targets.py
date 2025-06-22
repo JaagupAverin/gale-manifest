@@ -11,9 +11,9 @@ HMI_APP_TARGET = Target(
     parent_project=HMI_APP_PROJECT,
     cmake_target="hmi_app",
     build_subdir="hmi_app",
-    post_build_callback=common_post_build_task,
-    run_callback=common_run_task,
-    debug_callback=common_debug_task,
+    post_build_handler=common_post_build_task,
+    run_handler=common_run_task,
+    debug_handler=common_debug_task,
 )
 
 SENSOR_APP_TARGET = Target(
@@ -21,9 +21,9 @@ SENSOR_APP_TARGET = Target(
     parent_project=SENSOR_APP_PROJECT,
     cmake_target="sensor_app",
     build_subdir="sensor_app",
-    post_build_callback=common_post_build_task,
-    run_callback=common_run_task,
-    debug_callback=common_debug_task,
+    post_build_handler=common_post_build_task,
+    run_handler=common_run_task,
+    debug_handler=common_debug_task,
 )
 
 

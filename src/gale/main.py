@@ -139,12 +139,12 @@ def run(
 ) -> None:
     """Run the given target, for the given board."""
     trgt: Target = get_target(target)
-    if not trgt.run_callback:
+    if not trgt.run_handler:
         log.fatal(f"Target '{trgt.name}' does not support running.")
 
     conf: Configuration = Configuration(get_board(board), trgt)
     cache: BuildCache = conf.get_build_cache()
-    trgt.run_callback(cache, extra_run_args)
+    trgt.run_handler(cache, extra_run_args)
 
 
 @app.command(no_args_is_help=True)
@@ -155,12 +155,12 @@ def debug(
 ) -> None:
     """Debug the given target, for the given board."""
     trgt: Target = get_target(target)
-    if not trgt.debug_callback:
+    if not trgt.debug_handler:
         log.fatal(f"Target '{trgt.name}' does not support debugging.")
 
     conf: Configuration = Configuration(get_board(board), trgt)
     cache: BuildCache = conf.get_build_cache()
-    trgt.debug_callback(cache, extra_debug_args)
+    trgt.debug_handler(cache, extra_debug_args)
 
 
 if __name__ == "__main__":
