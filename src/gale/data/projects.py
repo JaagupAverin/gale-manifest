@@ -1,16 +1,7 @@
-from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
 
 from gale.data.paths import GALE_ROOT_DIR, PROJECTS_DIR
-
-
-@dataclass
-class Project:
-    name: str
-    dir: Path
-    upstream: bool
-
+from gale.data.structs import Project
 
 MANIFEST_PROJECT = Project(
     name="manifest",

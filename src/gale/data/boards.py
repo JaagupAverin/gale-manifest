@@ -1,27 +1,7 @@
-from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
 
-from gale import log
 from gale.data.projects import SHARED_PROJECT
-
-
-@dataclass
-class Board:
-    name: str
-    dir: Path
-
-    @property
-    def env(self) -> Path:
-        file = self.dir / "environment"
-        if not file.exists():
-            log.fatal(f"Environment file for board '{self.name}' not found", file=str(file.absolute()))
-        return file
-
-    @property
-    def is_bsim(self) -> bool:
-        return "bsim" in self.name
-
+from gale.data.structs import Board
 
 NRF54L15_DK_BOARD = Board(
     name="nrf54l15dk",

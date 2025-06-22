@@ -1,8 +1,6 @@
 from typing import TYPE_CHECKING
 
-from gale.build_cache import BuildCache
-from gale.data.boards import Board
-from gale.data.projects import Project
+from gale.data.structs import Board, BuildCache, Target
 from gale.util import CmdMode, run_command, source_environment
 
 if TYPE_CHECKING:
@@ -10,41 +8,42 @@ if TYPE_CHECKING:
 
 
 class Configuration:
-    def __init__(self, project: Project, board: Board) -> None:
-        self.project: Project = project
+    def __init__(self, board: Board, target: Target) -> None:
         self.board: Board = board
-        self._root_build_dir: Path = self.project.dir / "build"
+        self.target: Target = target
+        self._root_build_dir: Path = self.target.parent_project.dir / "build"
+        subdir: str = self.target.build_subdir if self.target.build_subdir else ""
+        self._target_build_dir: Path = self._root_build_dir / subdir
 
-    def get_triplet(self, target: str) -> str:
-        """Triplet format: <project_name>:<board_name>:<target_name>."""
-        return f"{self.project.name}:{self.board.name}:{target}"
-
-    def build_target(self, target: str, extra_args: str = "") -> BuildCache:
-        """Build the given target with this configuration, returning the build cache."""
+    def build(self, extra_args: list[str] | None = None) -> BuildCache:
+        """Build the target, returning the build cache."""
         source_environment(self.board.env)
+        args: str = " ".join(extra_args) if extra_args else ""
 
         build_cmd: str = (
             "west build"
-            + f" -s {self.project.dir}"
+            + f" -s {self.target.parent_project.dir}"
             + f" -d {self._root_build_dir}"
-            + f" -t {target}"
-            + f" {extra_args}"
+            + f" -t {self.target.cmake_target}"
+            + f" {args}"
             + " -- "
             + " -G'Ninja'"
         )
         run_command(
             cmd=build_cmd,
-            desc=f"Building target '{self.get_triplet(target)}'",
+            desc=f"Building target '{self.target.name}' for board '{self.board.name}'",
             mode=CmdMode.FOREGROUND,
         )
-        return BuildCache(self.get_triplet(target), self._root_build_dir / target)
 
-    def get_build_cache(self, target: str) -> BuildCache:
-        """Return the build cache for the given target.
+        build_cache: BuildCache = self.get_build_cache()
+        if self.target.post_build_callback:
+            self.target.post_build_callback(build_cache)
+        return build_cache
 
-        Target must have been built first, otherwise an error is raised.
+    def get_build_cache(self) -> BuildCache:
+        """Return the build cache for a previously built target.
+
+        Target must have been built first (cache files must exist on disk), otherwise an error is raised.
         """
         source_environment(self.board.env)
-
-        target_build_dir: Path = self._root_build_dir / target
-        return BuildCache(self.get_triplet(target), target_build_dir)
+        return BuildCache(self.board, self.target, self._target_build_dir)

@@ -31,7 +31,9 @@ TargetArg = Annotated[
     typer.Option(
         help=(
             "Target: determines which CMake target to build/run/debug. "
-            "The CMake project is determined automatically based on hardcoded relationships."
+            "The CMake project that this target belongs to is determined automatically "
+            "based on hardcoded relationships. If the desired target is not listed here, "
+            "then it may be built manually using the 'cmake' command."
         ),
         show_default=False,
     ),
@@ -40,7 +42,7 @@ TargetArg = Annotated[
 ExtraArgs = Annotated[
     list[str] | None,
     typer.Argument(
-        help="Extra arguments to pass to the underlying command.",
+        help="Extra arguments to pass to the underlying command, e.g. to 'west build' or to the BabbleSim binary.",
         show_default=False,
     ),
 ]
