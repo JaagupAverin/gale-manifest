@@ -1,0 +1,46 @@
+from typing import Annotated
+
+import typer
+
+from gale.data.boards import BoardEnum
+from gale.data.projects import ProjectEnum
+from gale.data.targets import TargetEnum
+
+ProjectArg = Annotated[
+    ProjectEnum,
+    typer.Option(
+        help="Target project: determines which CMakeLists.txt to use.",
+        show_default=False,
+    ),
+]
+
+BoardArg = Annotated[
+    BoardEnum,
+    typer.Option(
+        help=(
+            "Target board: determines which board's environment file to use. "
+            "The environment file in turn defines the overlays, KConfigs, "
+            "and other key variables used by the build system."
+        ),
+        show_default=False,
+    ),
+]
+
+TargetArg = Annotated[
+    TargetEnum,
+    typer.Option(
+        help=(
+            "Target: determines which CMake target to build/run/debug. "
+            "The CMake project is determined automatically based on hardcoded relationships."
+        ),
+        show_default=False,
+    ),
+]
+
+ExtraArgs = Annotated[
+    list[str] | None,
+    typer.Argument(
+        help="Extra arguments to pass to the underlying command.",
+        show_default=False,
+    ),
+]

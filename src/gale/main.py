@@ -1,17 +1,18 @@
 import os
-import textwrap
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
 import typer
 
 from gale import log
-from gale.boards import BoardEnum, get_board
 from gale.common import set_verbose
 from gale.configuration import Configuration
-from gale.projects import MANIFEST_PROJECT, PROJECTS, ZEPHYR_PROJECT, Project, ProjectEnum, get_project
-from gale.targets import get_target_names
-from gale.util import CmdMode, get_bsim_dir, in_venv, run_command
+from gale.data.boards import Board, get_board
+from gale.data.paths import BSIM_DIR
+from gale.data.projects import PROJECTS, ZEPHYR_PROJECT, Project
+from gale.data.targets import Target, get_target
+from gale.typer_args import BoardArg, ExtraArgs, ProjectArg, TargetArg
+from gale.util import CmdMode, generate_clangd_file, in_venv, run_command
 
 if TYPE_CHECKING:
     from gale.build_cache import BuildCache
@@ -35,7 +36,7 @@ def gale(
     if verbose:
         set_verbose(True)
 
-    os.environ["ZEPHYR_BASE"] = str(ZEPHYR_PROJECT.path.absolute())
+    os.environ["ZEPHYR_BASE"] = str(ZEPHYR_PROJECT.dir.absolute())
 
     if not in_venv():
         log.fatal("This tool must be run from within a virtual environment; create and activate .venv as per README!")
@@ -54,7 +55,7 @@ def setup() -> None:
         cmd="make everything -j 8",
         desc="Building BabbleSim",
         mode=CmdMode.FOREGROUND,
-        cwd=get_bsim_dir(),
+        cwd=BSIM_DIR,
     )
 
 
@@ -67,13 +68,13 @@ def checkout(branch: str) -> None:
     """
     cmd: str = f"git fetch && git switch {branch} || git switch --track origin/{branch}"
 
-    user_projects: list[Project] = [project for project in PROJECTS if not project.upstream]
+    user_projects: list[Project] = [project for project in PROJECTS.values() if not project.upstream]
     for project in user_projects:
         run_command(
             cmd=cmd,
             desc=f"Checking out branch '{branch}' in project '{project.name}'",
             mode=CmdMode.FOREGROUND,
-            cwd=project.path,
+            cwd=project.dir,
             fatal=False,
         )
 
@@ -87,134 +88,91 @@ def push(message: str) -> None:
     """
     cmd: str = f'git add . && git commit -m "{message}" && git push'
 
-    user_projects: list[Project] = [project for project in PROJECTS if not project.upstream]
+    user_projects: list[Project] = [project for project in PROJECTS.values() if not project.upstream]
     for project in user_projects:
         run_command(
             cmd=cmd,
             desc=f"Commiting and pushing changes in project '{project.name}'",
             mode=CmdMode.FOREGROUND,
-            cwd=project.path,
+            cwd=project.dir,
             fatal=False,
         )
 
 
-ProjectArg = Annotated[
-    ProjectEnum,
-    typer.Argument(
-        help="Target project: determines which CMakeLists.txt to use.",
-        show_default=False,
-    ),
-]
-
-BoardArg = Annotated[
-    BoardEnum,
-    typer.Argument(
-        help=(
-            "Target board: determines which board's environment file to use. "
-            "The environment file in turn defines the overlays, KConfigs, "
-            "and other key variables used by the build system."
-        ),
-        show_default=False,
-    ),
-]
-
-TargetArg = Annotated[
-    str,
-    typer.Argument(
-        help=(
-            "Target name: determines which CMake target to build/run/debug. "
-            "Common pre-defined targets can be cycled with shell autocompletion. "
-            "However, any CMake target from the given project can be specified "
-            "(build the 'help' target to see all options). "
-        ),
-        autocompletion=get_target_names,  # pyright: ignore[reportUnknownArgumentType]
-        show_default=False,
-    ),
-]
-
-ExtraArgs = Annotated[
-    list[str] | None,
-    typer.Argument(
-        help="Extra arguments to pass to the underlying command.",
-        show_default=False,
-    ),
-]
-
-
-@app.command()
+@app.command(no_args_is_help=True)
 def build(
-    project: ProjectArg,
     board: BoardArg,
     target: TargetArg,
-    extra_args: ExtraArgs = None,
+    extra_build_args: ExtraArgs = None,
 ) -> None:
-    """Build the given target. Usage: gale build <project> <board> <target> [-- <extra_args>]."""
-    conf: Configuration = Configuration(get_project(project), get_board(board))
-    extra_args_str: str = " ".join(extra_args) if extra_args else ""
-    # TODO: Non-sysbuild targets don't have subfolders in the build directory - need specialized behaviour for specific targets anyways!
-    # TODO: Try using --Options for project/board/target - maybe looks better?
-    cache: BuildCache = conf.build_target(target, extra_args_str)
+    """Build the given target."""
+    board_actual: Board = get_board(board)
+    target_actual: Target = get_target(target)
+    args_actual: str = " ".join(extra_build_args) if extra_build_args else ""
 
-    clangd_file_content = textwrap.dedent(f"""
-    # This file is auto-generated by gale for the latest built target ({project.value}:{board.value}:{target}).
-    CompileFlags:
-      CompilationDatabase: {cache.build_dir}
-      Add: -Wno-unknown-warning-option
-      Remove: [-m*, -f*]
-    """)
-    clangd_file_path = MANIFEST_PROJECT.path / ".clangd"
-    log.inf(f"Generating .clangd file at {clangd_file_path}")
-    with clangd_file_path.open("w") as file:
-        file.write(clangd_file_content)
+    project: Project = target_actual.parent_project
+    conf: Configuration = Configuration(project, board_actual)
+    cache: BuildCache = conf.build_target(target_actual.cmake_target, args_actual)
+    generate_clangd_file(cache)
 
 
-@app.command()
+@app.command(no_args_is_help=True)
 def run(
-    project: ProjectEnum,
     board: BoardArg,
     target: TargetArg,
-    extra_args: ExtraArgs = None,
+    extra_run_args: ExtraArgs = None,
 ) -> None:
-    """Run the given target. Usage: gale run <project> <board> <target> [-- <extra_args>]."""
-    conf: Configuration = Configuration(get_project(project), get_board(board))
-    cache: BuildCache = conf.get_build_cache(target)
+    """Run the given target."""
+    board_actual: Board = get_board(board)
+    target_actual: Target = get_target(target)
+    args_actual: str = " ".join(extra_run_args) if extra_run_args else ""
+
+    project: Project = target_actual.parent_project
+    conf: Configuration = Configuration(project, board_actual)
+    cache: BuildCache = conf.get_build_cache(target_actual.cmake_target)
 
     if conf.board.is_bsim:
-        exe = Path(cache.cmake_cache.exe_path)
+        exe: Path = Path(cache.cmake_cache.exe_path)
         if not exe.exists():
             log.fatal(f"Output binary '{exe}' does not exist; use build first.")
 
-        extra_args_str = " ".join(extra_args) if extra_args else ""
-        run_cmd = f"{exe} -nosim {extra_args_str}"
-        run_command(run_cmd, desc=f"Running '{target}' natively", mode=CmdMode.REPLACE)
+        run_cmd: str = f"{exe} -nosim {args_actual}"
+        run_command(
+            cmd=run_cmd,
+            desc=f"Running '{target}' natively",
+            mode=CmdMode.REPLACE,
+        )
     else:
         log.fatal("Direct running on board not yet implemented.")
 
 
-@app.command()
+@app.command(no_args_is_help=True)
 def debug(
-    project: ProjectArg,
     board: BoardArg,
     target: TargetArg,
-    extra_args: ExtraArgs = None,
+    extra_debug_args: ExtraArgs = None,
 ) -> None:
-    """Debug the given target. Usage: gale debug <project> <board> <target>."""
-    conf: Configuration = Configuration(get_project(project), get_board(board))
-    cache: BuildCache = conf.get_build_cache(target)
+    """Debug the given target."""
+    board_actual: Board = get_board(board)
+    target_actual: Target = get_target(target)
+    args_actual: str = " ".join(extra_debug_args) if extra_debug_args else ""
+
+    project: Project = target_actual.parent_project
+    conf: Configuration = Configuration(project, board_actual)
+    cache: BuildCache = conf.get_build_cache(target_actual.cmake_target)
 
     if conf.board.is_bsim:
-        exe = Path(cache.cmake_cache.exe_path)
+        exe: Path = Path(cache.cmake_cache.exe_path)
         if not exe.exists():
             log.fatal(f"Output binary '{exe}' does not exist; use build first.")
 
-        extra = " ".join(extra_args) if extra_args else ""
-        run_cmd = f"{exe} -nosim {extra}"
-        dbg_cmd = f"{cache.cmake_cache.gdb} --tui --args {run_cmd}"
+        run_cmd: str = f"{exe} -nosim {args_actual}"
+        dbg_cmd: str = f"{cache.cmake_cache.gdb} --tui --args {run_cmd}"
         # TODO1: Figure out how to prevent bsim from spamming output to primary console!
         # TODO2: Test out this with the new REPLACE command: is --tui still causing issues?
-        run_command(dbg_cmd, desc=f"Debugging '{target}' natively", mode=CmdMode.REPLACE)
+        run_command(cmd=dbg_cmd, desc=f"Debugging '{target}' natively", mode=CmdMode.REPLACE)
     else:
-        log.fatal("Direct running on board not yet implemented.")
+        log.fatal("Direct debugging on board not yet implemented.")
 
 
 if __name__ == "__main__":
@@ -222,4 +180,5 @@ if __name__ == "__main__":
 
     # TODO: Look into 'gale setup' creating some environment file that could be used by editors.
     # TODO3: Look into build targets - think sysbuild is changing things up already?
-    # TODO4: Look into real-time bsim: https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim
+    # TODO4: Look into real-time bsim:
+    # https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim

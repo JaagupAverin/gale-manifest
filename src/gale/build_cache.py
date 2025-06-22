@@ -47,7 +47,7 @@ class BuildCache:
 
     def __init__(self, triplet: str, build_dir: Path) -> None:
         self.triplet: str = triplet
-        """Uniquely identifies the build configuration: <project>-<board>-<target>."""
+        """Uniquely identifies the build configuration: <project>:<board>:<target>."""
         self.build_dir: Path = build_dir
         """Directory where the compile_commands.json and other build artifacts are stored."""
 

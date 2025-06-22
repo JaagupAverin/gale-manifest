@@ -4,9 +4,10 @@ import shlex
 import signal
 import subprocess
 import sys
+import textwrap
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import cache
+from functools import partial
 from pathlib import Path
 from threading import Semaphore, Thread
 from typing import Any, Never
@@ -14,6 +15,9 @@ from typing import Any, Never
 from dotenv import load_dotenv
 
 from gale import log
+from gale.build_cache import BuildCache
+from gale.data.paths import GALE_ROOT_DIR
+from gale.data.projects import MANIFEST_PROJECT
 
 
 def in_venv() -> bool:
@@ -21,17 +25,23 @@ def in_venv() -> bool:
 
 
 @dataclass
-class Cmd:
+class CmdHandle:
     ready: Semaphore = field(default_factory=Semaphore)
+    """Given when process finishes."""
     thread: Thread | None = field(default=None)
+    """Thread running the command."""
     proc: subprocess.Popen[str] | None = field(default=None)
+    """Process running the command."""
     cmd: str = field(default="")
+    """Raw command being executed, i.e `west update`."""
 
     code: int = field(default=0)
+    """Exit code of the command; only valid when `ready` is given."""
     stdout: str = field(default="")
+    """Stdout or stderr of the command; only valid when `ready` is given."""
 
 
-_CMD_HISTORY: list[Cmd] = []
+_CMD_HISTORY: list[CmdHandle] = []
 
 
 class CmdMode(Enum):
@@ -41,13 +51,52 @@ class CmdMode(Enum):
     REPLACE = 3  # Terminate Python and replace the terminal with the given command;
 
 
+def _run_actual(
+    cmd: str,
+    cwd: Path,
+    pipe: int | None,
+    cmd_handle: CmdHandle,
+) -> None:
+    """Wrapper around a subprocess.
+
+    When the process finishes, fills out the handle's code and stdout/stderr fields, and gives the ready semaphore.
+    """
+    with cmd_handle.ready:
+        try:
+            cmd_handle.proc = subprocess.Popen(  # noqa: S602
+                cmd,
+                shell=True,
+                cwd=cwd,
+                text=True,
+                stdout=pipe,
+                stderr=pipe,
+                stdin=pipe,
+                env=os.environ,
+            )
+            stdout, stderr = cmd_handle.proc.communicate()
+            cmd_handle.proc.wait()
+            cmd_handle.code = cmd_handle.proc.returncode
+
+            if cmd_handle.code == 0:
+                cmd_handle.stdout = stdout.strip() if stdout else f"code {cmd_handle.code}"
+            elif cmd_handle.code in (-signal.SIGINT, -signal.SIGTERM):
+                log.wrn(f"Command `{cmd_handle.cmd}` was terminated")
+            else:
+                cmd_handle.stdout = stderr.strip() if stderr else f"code {cmd_handle.code}"
+
+        except FileNotFoundError:
+            cmd_handle.code = 1
+            cmd_handle.stdout = f"Invalid working directory {cwd}"
+
+
 def run_command(
+    *,  # Force all arguments to be keyword-typed for clarity and consistency.
     cmd: str,
     desc: str,
     mode: CmdMode,
     cwd: Path | None = None,
     fatal: bool = True,
-) -> Cmd:
+) -> CmdHandle:
     """Run the given command.
 
     cmd: command string, e.g "apt install python";
@@ -59,12 +108,12 @@ def run_command(
     Only OS agnostic commands (such as git, python or west) should be used.
     """
     if cwd is None:
-        cwd = get_west_topdir()
+        cwd = GALE_ROOT_DIR
 
-    result = Cmd()
-    result.cmd = cmd
+    cmd_handle = CmdHandle()
+    cmd_handle.cmd = cmd
 
-    _CMD_HISTORY.append(result)
+    _CMD_HISTORY.append(cmd_handle)
 
     pipe: int | None = 0
     if mode == CmdMode.BACKGROUND:
@@ -85,50 +134,32 @@ def run_command(
         # to the new process that shall inherit this terminal. This is required for cases where
         # Python causes issues as the middle-man (e.g. catching interrupt signals, etc).
         log.inf("Running command in foreground (replacing Python!).", desc=desc, cmd=cmd, cwd=cwd)
-        args = shlex.split(cmd)
+        args: list[str] = shlex.split(cmd)
         os.chdir(cwd)
         os.execve(args[0], args, os.environ)  # noqa: S606
-        return None
     else:
         log.dbg("Running command for its stdout value.", cmd=cmd)
         pipe = subprocess.PIPE
 
-    def run() -> None:
-        with result.ready:
-            try:
-                result.proc = subprocess.Popen(  # noqa: S602
-                    cmd,
-                    shell=True,
-                    cwd=cwd,
-                    text=True,
-                    stdout=pipe,
-                    stderr=pipe,
-                    stdin=pipe,
-                    env=os.environ,
-                )
-                stdout, stderr = result.proc.communicate()
-                result.proc.wait()
-                result.code = result.proc.returncode
-
-                if result.code == 0:
-                    result.stdout = stdout.strip() if stdout else f"code {result.code}"
-                elif result.code in (-signal.SIGINT, -signal.SIGTERM):
-                    log.wrn(f"Command `{result.cmd}` was terminated")
-                else:
-                    result.stdout = stderr.strip() if stderr else f"code {result.code}"
-                    if fatal:
-                        log.fatal(f"Cmd `{result.cmd}` failed: {result.stdout}")
-
-            except FileNotFoundError:
-                log.fatal(f"Invalid working directory {cwd}")
-
-    result.thread = Thread(target=run)
-    result.thread.start()
+    cmd_handle.thread = Thread(
+        target=partial(
+            _run_actual,
+            cmd=cmd,
+            cwd=cwd,
+            pipe=pipe,
+            cmd_handle=cmd_handle,
+        )
+    )
+    cmd_handle.thread.start()
 
     if mode == CmdMode.BACKGROUND:
-        return result
-    result.thread.join()
-    return result
+        return cmd_handle  # Caller is responsible for checking the code and stdout!
+
+    # Otherwise wait for the command to finish:
+    cmd_handle.thread.join()
+    if fatal and cmd_handle.code != 0:
+        log.fatal(f"Cmd `{cmd_handle.cmd}` failed: {cmd_handle.stdout}")
+    return cmd_handle
 
 
 def _cleanup(signal_number: int, _frame: Any) -> Never:  # noqa: ANN401
@@ -151,6 +182,7 @@ signal.signal(signal.SIGINT, _cleanup)
 
 
 def install_system_packages(packages: list[str]) -> None:
+    """A work-in-progress function to install system packages in OS-agnostic way."""
     if sys.platform.startswith("linux"):
         exe = "sudo apt install"
     elif sys.platform.startswith("win"):
@@ -174,33 +206,17 @@ def source_environment(env_file_path: Path) -> None:
             log.inf(f"{key}: {value}")
 
 
-@cache
-def get_west_topdir() -> Path:
-    return Path(
-        run_command(
-            cmd="west topdir",
-            desc="Determining WEST_TOPDIR",
-            mode=CmdMode.CAPTURE_RESULT,
-            cwd=Path(),
-        ).stdout
-    )
+def generate_clangd_file(cache: BuildCache) -> None:
+    """Writes a .clangd file for the given build cache in gale root directory, in order to benefit LSPs."""
+    clangd_file_content = textwrap.dedent(f"""
+    # This file is auto-generated by gale for the latest built target ({cache.triplet}).
+    CompileFlags:
+      CompilationDatabase: {cache.build_dir}
+      Add: -Wno-unknown-warning-option
+      Remove: [-m*, -f*]
+    """)
 
-
-@cache
-def get_manifest_dir() -> Path:
-    return Path(f"{get_west_topdir()}/gale")
-
-
-@cache
-def get_projects_dir() -> Path:
-    return Path(f"{get_manifest_dir()}/projects")
-
-
-@cache
-def get_tools_dir() -> Path:
-    return Path(f"{get_projects_dir()}/tools")
-
-
-@cache
-def get_bsim_dir() -> Path:
-    return Path(f"{get_tools_dir()}/bsim")
+    clangd_file_path = MANIFEST_PROJECT.dir / ".clangd"
+    log.inf(f"Generating .clangd file at {clangd_file_path}")
+    with clangd_file_path.open("w") as file:
+        file.write(clangd_file_content)
