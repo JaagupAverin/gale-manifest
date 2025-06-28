@@ -39,10 +39,30 @@ TargetArg = Annotated[
     ),
 ]
 
-ExtraArgs = Annotated[
+RebuildArg = Annotated[
+    bool,
+    typer.Option(
+        help=(
+            "Rebuild the target before running/debugging. "
+            "Any extra build args from the latest build will be applied again "
+            "(build args are automatically cached to disk and reused)."
+        ),
+        show_default=False,
+    ),
+]
+
+ExtraBuildArgs = Annotated[
     list[str] | None,
     typer.Argument(
-        help="Extra arguments to pass to the underlying command, e.g. to 'west build' or to the BabbleSim binary.",
+        help="Extra arguments to pass to the underlying build command, e.g. to 'west build'.",
+        show_default=False,
+    ),
+]
+
+ExtraRunArgs = Annotated[
+    list[str] | None,
+    typer.Argument(
+        help="Extra arguments to pass to the underlying runner, e.g. to the BabbleSim executable.",
         show_default=False,
     ),
 ]

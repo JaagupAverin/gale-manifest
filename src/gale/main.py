@@ -11,10 +11,16 @@ from gale.data.paths import BSIM_DIR
 from gale.data.projects import PROJECTS, ZEPHYR_PROJECT, get_project
 from gale.data.structs import BuildCache, Project, Target
 from gale.data.targets import get_target
-from gale.typer_args import BoardArg, ExtraArgs, ProjectArg, TargetArg
+from gale.typer_args import BoardArg, ExtraBuildArgs, ExtraRunArgs, ProjectArg, RebuildArg, TargetArg
 from gale.util import CmdMode, in_venv, run_command
 
 app: typer.Typer = typer.Typer(name="woid", rich_markup_mode="rich", no_args_is_help=True)
+
+
+class CommandPanel:
+    GIT: str = "Git / Version control"
+    PROJECT_DEVELOPMENT: str = "Project development"
+    OTHER: str = "Other"
 
 
 @app.callback(invoke_without_command=True)
@@ -42,21 +48,7 @@ def gale(
         log.dbg(f"Running command `{ctx.invoked_subcommand}`.")
 
 
-@app.command()
-def setup() -> None:
-    """Install development dependencies for building, flashing, etc.
-
-    Usage: gale setup
-    """
-    run_command(
-        cmd="make everything -j 8",
-        desc="Building BabbleSim",
-        mode=CmdMode.FOREGROUND,
-        cwd=BSIM_DIR,
-    )
-
-
-@app.command()
+@app.command(rich_help_panel=CommandPanel.GIT)
 def checkout(branch: str) -> None:
     """Checkout the given branch in all user repositories.
 
@@ -76,7 +68,7 @@ def checkout(branch: str) -> None:
         )
 
 
-@app.command()
+@app.command(rich_help_panel=CommandPanel.GIT)
 def push(message: str) -> None:
     """Commit and push local changes in all user repositories.
 
@@ -96,12 +88,59 @@ def push(message: str) -> None:
         )
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
+def build(
+    board: BoardArg,
+    target: TargetArg,
+    extra_build_args: ExtraBuildArgs = None,
+) -> None:
+    """Build the given target, for the given board."""
+    trgt: Target = get_target(target)
+
+    conf: Configuration = Configuration(get_board(board), trgt)
+    conf.build(extra_build_args)
+
+
+@app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
+def run(
+    board: BoardArg,
+    target: TargetArg,
+    rebuild: RebuildArg = False,
+    extra_run_args: ExtraRunArgs = None,
+) -> None:
+    """Run the given target, for the given board."""
+    trgt: Target = get_target(target)
+    if not trgt.run_handler:
+        log.fatal(f"Target '{trgt.name}' does not support running.")
+
+    conf: Configuration = Configuration(get_board(board), trgt)
+    cache: BuildCache = conf.build() if rebuild else conf.get_build_cache()
+    trgt.run_handler(cache, extra_run_args)
+
+
+@app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
+def debug(
+    board: BoardArg,
+    target: TargetArg,
+    rebuild: RebuildArg = False,
+    extra_run_args: ExtraRunArgs = None,
+) -> None:
+    """Debug the given target, for the given board."""
+    trgt: Target = get_target(target)
+    if not trgt.debug_handler:
+        log.fatal(f"Target '{trgt.name}' does not support debugging.")
+
+    conf: Configuration = Configuration(get_board(board), trgt)
+    cache: BuildCache = conf.build() if rebuild else conf.get_build_cache()
+    trgt.debug_handler(cache, extra_run_args)
+
+
+@app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
 def cmake(
     board: BoardArg,
     project: ProjectArg,
-    cmake_target: str,
-    extra_build_args: ExtraArgs = None,
+    cmake_target: Annotated[str, typer.Argument(help="The CMake target to build, e.g. 'help'", show_default=False)],
+    extra_build_args: ExtraBuildArgs = None,
 ) -> None:
     """Build a custom CMake target (one not provided by the pre-defined Targets), for the given board.
 
@@ -118,56 +157,27 @@ def cmake(
     conf.build(extra_build_args)
 
 
-@app.command(no_args_is_help=True)
-def build(
-    board: BoardArg,
-    target: TargetArg,
-    extra_build_args: ExtraArgs = None,
-) -> None:
-    """Build the given target, for the given board."""
-    trgt: Target = get_target(target)
+@app.command(rich_help_panel=CommandPanel.OTHER)
+def setup() -> None:
+    """Install development dependencies for building, flashing, etc. Called once after cloning the workspace.
 
-    conf: Configuration = Configuration(get_board(board), trgt)
-    conf.build(extra_build_args)
-
-
-@app.command(no_args_is_help=True)
-def run(
-    board: BoardArg,
-    target: TargetArg,
-    extra_run_args: ExtraArgs = None,
-) -> None:
-    """Run the given target, for the given board."""
-    trgt: Target = get_target(target)
-    if not trgt.run_handler:
-        log.fatal(f"Target '{trgt.name}' does not support running.")
-
-    conf: Configuration = Configuration(get_board(board), trgt)
-    cache: BuildCache = conf.get_build_cache()
-    trgt.run_handler(cache, extra_run_args)
-
-
-@app.command(no_args_is_help=True)
-def debug(
-    board: BoardArg,
-    target: TargetArg,
-    extra_debug_args: ExtraArgs = None,
-) -> None:
-    """Debug the given target, for the given board."""
-    trgt: Target = get_target(target)
-    if not trgt.debug_handler:
-        log.fatal(f"Target '{trgt.name}' does not support debugging.")
-
-    conf: Configuration = Configuration(get_board(board), trgt)
-    cache: BuildCache = conf.get_build_cache()
-    trgt.debug_handler(cache, extra_debug_args)
+    Usage: gale setup
+    """
+    run_command(
+        cmd="make everything -j 8",
+        desc="Building BabbleSim",
+        mode=CmdMode.FOREGROUND,
+        cwd=BSIM_DIR,
+    )
 
 
 if __name__ == "__main__":
     app()
 
 
-# TODO1: Figure out how to prevent bsim from spamming output to primary console!
-# TODO3: Look into build targets - think sysbuild is changing things up already?
-# TODO4: Look into real-time bsim:
+# TODO1: Look into real-time bsim:
 # https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim
+# TODO2: Make sure shell works over pty :)
+
+# TODO3: Look into build targets - think sysbuild is changing things up already?
+# TODO4: Continue with the flash simulator testing with flash_bin or whatever
