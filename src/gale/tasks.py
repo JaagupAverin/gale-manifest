@@ -24,21 +24,42 @@ def task_generate_clangd_file(cache: BuildCache) -> None:
 
 
 def common_post_build_task(cache: BuildCache) -> None:
-    """Common post-build steps for most targets."""
+    """Common post-build steps for most targets.
+
+    * Generates a .clangd file at gale root directory for an LSP.
+    """
     task_generate_clangd_file(cache)
 
 
+def _get_bsim_run_cmd(cache: BuildCache, user_args: list[str] | None, *, attach_to_uart: bool) -> str:
+    """Given that the target was built as a native BabbleSim executable, return a command to run it natively.
+
+    The returned command is effectively a path to the executable, with added arguments that simplify monitoring.
+    """
+    args: str = " ".join(user_args) if user_args else ""
+
+    exe: Path = Path(cache.cmake_cache.exe_path)
+    if not exe.exists():
+        log.fatal(f"Output binary '{exe}' does not exist; use build first.")
+
+    if attach_to_uart:
+        attach_cmd: str = "gale monitor --port %s --terminal"
+    else:
+        # Don't actually attach, but print out HOW to attach, a bit more flexible and stable this way,
+        attach_cmd = 'echo "\033[31m >>> Program paused until monitoring! Use: gale monitor --port %s\033[0m"'
+
+    run_cmd: str = f"{exe} --nosim {args} --wait_uart --attach_uart_cmd='{attach_cmd}'"
+    return run_cmd
+
+
 def common_run_task(cache: BuildCache, extra_args: list[str] | None) -> None:
-    args: str = " ".join(extra_args) if extra_args else ""
+    """Common run steps for most targets.
 
+    * For BabbleSim builds, runs the natively built binary directly.
+    """
     if cache.board.is_bsim:
-        exe: Path = Path(cache.cmake_cache.exe_path)
-        if not exe.exists():
-            log.fatal(f"Output binary '{exe}' does not exist; use build first.")
-
-        run_cmd: str = f"{exe} -nosim {args}"
         run_command(
-            cmd=run_cmd,
+            cmd=_get_bsim_run_cmd(cache, extra_args, attach_to_uart=True),
             desc=f"Running '{cache.triplet}' natively",
             mode=CmdMode.REPLACE,
         )
@@ -47,14 +68,13 @@ def common_run_task(cache: BuildCache, extra_args: list[str] | None) -> None:
 
 
 def common_debug_task(cache: BuildCache, extra_args: list[str] | None) -> None:
-    args: str = " ".join(extra_args) if extra_args else ""
+    """Common debug steps for most targets.
 
+    * For BabbleSim builds, runs the natively built binary through gdb.
+    """
     if cache.board.is_bsim:
-        exe: Path = Path(cache.cmake_cache.exe_path)
-        if not exe.exists():
-            log.fatal(f"Output binary '{exe}' does not exist; use build first.")
-
-        run_cmd: str = f"{exe} -nosim {args}"
+        # Don't automatically attach to UART because its a bit unstable when called in combination with gdb:
+        run_cmd: str = _get_bsim_run_cmd(cache, extra_args, attach_to_uart=False)
         dbg_cmd: str = f"{cache.cmake_cache.gdb} --tui --args {run_cmd}"
         run_command(cmd=dbg_cmd, desc=f"Debugging '{cache.triplet}' natively", mode=CmdMode.REPLACE)
     else:

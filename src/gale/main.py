@@ -11,8 +11,17 @@ from gale.data.paths import BSIM_DIR
 from gale.data.projects import PROJECTS, ZEPHYR_PROJECT, get_project
 from gale.data.structs import BuildCache, Project, Target
 from gale.data.targets import get_target
-from gale.typer_args import BoardArg, ExtraBuildArgs, ExtraRunArgs, ProjectArg, RebuildArg, TargetArg
-from gale.util import CmdMode, in_venv, run_command
+from gale.typer_args import (
+    BaudrateArg,
+    BoardArg,
+    ExtraBuildArgs,
+    ExtraRunArgs,
+    PortArg,
+    ProjectArg,
+    RebuildArg,
+    TargetArg,
+)
+from gale.util import CmdMode, in_venv, run_command, serial_monitor
 
 app: typer.Typer = typer.Typer(name="woid", rich_markup_mode="rich", no_args_is_help=True)
 
@@ -136,6 +145,16 @@ def debug(
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
+def monitor(
+    port: PortArg,
+    baud: BaudrateArg = 115200,
+    terminal: Annotated[bool, typer.Option(help="Spawn a new terminal window for the monitor")] = False,
+) -> None:
+    """Monitor an already running device; i.e. attach to the given port for shell or console."""
+    serial_monitor(port=port, baud=baud, spawn_new_terminal=terminal)
+
+
+@app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
 def cmake(
     board: BoardArg,
     project: ProjectArg,
@@ -181,3 +200,4 @@ if __name__ == "__main__":
 
 # TODO3: Look into build targets - think sysbuild is changing things up already?
 # TODO4: Continue with the flash simulator testing with flash_bin or whatever
+# TODO5: Remove build/ from git.

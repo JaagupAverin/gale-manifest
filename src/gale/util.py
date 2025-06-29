@@ -24,7 +24,7 @@ def in_venv() -> bool:
 @dataclass
 class CmdHandle:
     ready: Semaphore = field(default_factory=Semaphore)
-    """Given when process finishes."""
+    """Given when process results are available; depending on mode, this may never be given."""
     thread: Thread | None = field(default=None)
     """Thread running the command."""
     proc: subprocess.Popen[str] | None = field(default=None)
@@ -46,6 +46,7 @@ class CmdMode(Enum):
     BACKGROUND = 1  # Run program with stdout/stdin piped to a new virtual port;
     CAPTURE_RESULT = 2  # Run program without live stdout/stdin - only return result;
     REPLACE = 3  # Terminate Python and replace the terminal with the given command;
+    SPAWN = 4  # Run program as a completely detached new process; return values not be made available;
 
 
 def _run_actual(
@@ -86,6 +87,18 @@ def _run_actual(
             cmd_handle.stdout = f"Invalid working directory {cwd}"
 
 
+def _run_in_terminal(cmd: str) -> str:
+    """Returns a new command that runs the given command in a terminal window.
+
+    e.g 'ls -l' might become 'konsole -e "ls -l"'
+    """
+    if sys.platform.startswith("linux"):
+        return f"konsole --hold -e '{cmd}'"
+
+    msg: str = f"Unsupported platform: {sys.platform}"
+    raise NotImplementedError(msg)
+
+
 def run_command(
     *,  # Force all arguments to be keyword-typed for clarity and consistency.
     cmd: str,
@@ -116,13 +129,7 @@ def run_command(
     if mode == CmdMode.BACKGROUND:
         pipe, slave_fd = pty.openpty()
         slave_name = os.ttyname(slave_fd)
-        log.inf(
-            f"Running command in background ({slave_name}).",
-            desc=desc,
-            cmd=cmd,
-            cwd=str(cwd.absolute()),
-            monitor=f"while true; do picocom --quiet {slave_name} || sleep 5; done",
-        )
+        log.inf(f"Running command in background ({slave_name}).", desc=desc, cmd=cmd, cwd=cwd)
     elif mode == CmdMode.FOREGROUND:
         pipe = None
         log.inf("Running command in foreground.", desc=desc, cmd=cmd, cwd=cwd)
@@ -131,9 +138,15 @@ def run_command(
         # to the new process that shall inherit this terminal. This is required for cases where
         # Python causes issues as the middle-man (e.g. catching interrupt signals, etc).
         log.inf("Running command in foreground (replacing Python!).", desc=desc, cmd=cmd, cwd=cwd)
-        args: list[str] = shlex.split(cmd)
         os.chdir(cwd)
-        os.execve(args[0], args, os.environ)  # noqa: S606
+        args: list[str] = shlex.split(cmd)
+        os.execvpe(args[0], args, os.environ)  # noqa: S606
+    elif mode == CmdMode.SPAWN:
+        cmd = _run_in_terminal(cmd)
+        args = shlex.split(cmd)
+        pid: int = os.spawnvpe(os.P_NOWAIT, args[0], args, os.environ)  # noqa: S606
+        log.inf("Running command as a detached process.", desc=desc, cmd=cmd, cwd=cwd, pid=pid)
+        return cmd_handle
     else:
         log.dbg("Running command for its stdout value.", cmd=cmd)
         pipe = subprocess.PIPE
@@ -179,11 +192,9 @@ signal.signal(signal.SIGINT, _cleanup)
 
 
 def install_system_packages(packages: list[str]) -> None:
-    """A work-in-progress function to install system packages in OS-agnostic way."""
+    """A work-in-progress function to install system packages in an OS-agnostic way."""
     if sys.platform.startswith("linux"):
         exe = "sudo apt install"
-    elif sys.platform.startswith("win"):
-        log.fatal("Don't know how to install packages on windows.")
     else:
         msg: str = f"Unsupported platform: {sys.platform}"
         raise NotImplementedError(msg)
@@ -192,6 +203,21 @@ def install_system_packages(packages: list[str]) -> None:
         cmd=" ".join([exe, *packages]),
         desc=f"Installing system packages: {packages}",
         mode=CmdMode.FOREGROUND,
+    )
+
+
+def serial_monitor(*, port: str, baud: int, spawn_new_terminal: bool = False) -> None:
+    """A work-in-progress function to monitor a serial port in an OS-agnostic way."""
+    if sys.platform.startswith("linux"):
+        cmd = f"picocom -b {baud} {port}"
+    else:
+        msg: str = f"Unsupported platform: {sys.platform}"
+        raise NotImplementedError(msg)
+
+    run_command(
+        cmd=cmd,
+        desc=f"Monitoring device on {port} at {baud} baud",
+        mode=CmdMode.SPAWN if spawn_new_terminal else CmdMode.FOREGROUND,
     )
 
 

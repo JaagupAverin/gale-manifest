@@ -1,6 +1,7 @@
 from typing import Annotated
 
 import typer
+from serial.tools.list_ports import comports
 
 from gale.data.boards import BoardEnum
 from gale.data.projects import ProjectEnum
@@ -64,5 +65,35 @@ ExtraRunArgs = Annotated[
     typer.Argument(
         help="Extra arguments to pass to the underlying runner, e.g. to the BabbleSim executable.",
         show_default=False,
+    ),
+]
+
+
+def _available_ports(incomplete: str) -> list[str]:
+    ports: list[str] = [port.device for port in comports()]
+    return [p for p in ports if p.startswith(incomplete)]
+
+
+PortArg = Annotated[
+    str,
+    typer.Option(
+        help="Serial port for communication, e.g. /dev/ttyUSB0",
+        autocompletion=_available_ports,
+        show_default=False,
+    ),
+]
+
+
+def _common_baudrates(incomplete: str) -> list[str]:
+    bauds: list[str] = ["9600", "115200", "250000"]
+    return [b for b in bauds if b.startswith(incomplete)]
+
+
+BaudrateArg = Annotated[
+    int,
+    typer.Option(
+        help="Baud rate for serial communication.",
+        autocompletion=_common_baudrates,
+        show_default=True,
     ),
 ]
