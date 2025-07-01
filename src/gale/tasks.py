@@ -1,10 +1,12 @@
+import shutil
 import textwrap
+from enum import Enum
 from pathlib import Path
 
 from gale import log
 from gale.data.projects import MANIFEST_PROJECT
 from gale.data.structs import BuildCache
-from gale.util import CmdMode, run_command
+from gale.util import CmdMode, run_command, source_environment
 
 
 def task_generate_clangd_file(cache: BuildCache) -> None:
@@ -31,51 +33,115 @@ def common_post_build_task(cache: BuildCache) -> None:
     task_generate_clangd_file(cache)
 
 
-def _get_bsim_run_cmd(cache: BuildCache, user_args: list[str] | None, *, attach_to_uart: bool) -> str:
-    """Given that the target was built as a native BabbleSim executable, return a command to run it natively.
+def _run_app_in_bsim(
+    cache: BuildCache,
+    *,
+    dbg_app: bool,
+    real_time: bool,
+) -> None:
+    """Given that the target was built as a BabbleSim executable, runs the binary natively.
 
-    The returned command is effectively a path to the executable, with added arguments that simplify monitoring.
+    This entails:
+    1. Copying the required bsim binaries/libraries and the target binary to a common directory;
+    2. Creating a common simulation ID;
+    3. Running the target binary device;
+    4. Running optional devices, such as the handbrake device (if "real time" execution is required);
+    5. Running the phy layer;
+
+    Parameters
+    ----------
+    dbg_app: if True, runs gdb in the foreground and app in the background (attachable through a virtual port);
+             if False, app will run normally in the foreground;
+    real_time: if True, the simulation will run in "real time", i.e K_SECONDS(1) corresponds to 1 second of real time;
+               if False, the simulation runs at maximum speed (limited only by host CPU); good for running tests;
+
     """
-    args: str = " ".join(user_args) if user_args else ""
+    source_environment(cache.board.env)
 
     exe: Path = Path(cache.cmake_cache.exe_path)
     if not exe.exists():
         log.fatal(f"Output binary '{exe}' does not exist; use build first.")
 
-    if attach_to_uart:
-        attach_cmd: str = "gale monitor --port %s --terminal"
+    bsim_out_path: Path = Path(cache.cmake_cache.bsim_out_path)
+    bsim_bin_dir: Path = bsim_out_path / "bin"
+    bsim_lib_dir: Path = bsim_out_path / "lib"
+
+    final_dir: Path = cache.build_dir / "bsim"
+    shutil.rmtree(final_dir, ignore_errors=True)
+    final_dir.mkdir(parents=True, exist_ok=True)
+    final_bin_dir: Path = final_dir / "bin"
+    final_lib_dir: Path = final_dir / "lib"
+
+    # All devices shall be "linked together" by the same simulation ID;
+    # Once the phy is executed, all devices with the same simulation ID will share the same phy:
+    sim_id: str = cache.target.name
+    num_devices: int = 0
+
+    # 1. Prepare simulation environment by copying the bsim binaries and libraries to the final folder:
+    shutil.copytree(bsim_bin_dir, final_bin_dir, dirs_exist_ok=True)
+    shutil.copytree(bsim_lib_dir, final_lib_dir, dirs_exist_ok=True)
+
+    # 2. Copy the app device itself to the final folder:
+    final_exe: str = str(shutil.copy(exe, final_bin_dir))
+
+    # 3. Run application device itself:
+    if dbg_app:
+        # In case of debugging, we cannot attach to UART in the same terminal as gdb, so instead we
+        # print out a message instructing the user to attach the UART, and wait until it is attached.
+        uart_attach_cmd: str = r"echo App\halted\ until\ UART\ attached!\ Use:\ gale\ monitor\ --port\ %s"
+        uart_args: str = f'--wait_uart --attach_uart_cmd="{uart_attach_cmd}"'
+        app_run_cmd: str = f"{cache.cmake_cache.gdb} --tui --args {final_exe} -s={sim_id} -d={num_devices} {uart_args}"
     else:
-        # Don't actually attach, but print out HOW to attach, a bit more flexible and stable this way,
-        attach_cmd = 'echo "\033[31m >>> Program paused until monitoring! Use: gale monitor --port %s\033[0m"'
+        # In case of running directly, attach the UART immediately:
+        uart_attach_cmd = "gale monitor --port %s --terminal"
+        uart_args = f'--wait_uart --attach_uart_cmd="{uart_attach_cmd}"'
+        app_run_cmd = f"{final_exe} -s={sim_id} -d={num_devices} {uart_args}"
+    num_devices += 1
+    run_command(
+        cmd=app_run_cmd,
+        desc=f"Running target '{cache.target.name}' device in BabbleSim PHY",
+        cwd=final_bin_dir,
+        mode=CmdMode.SPAWN,
+    )
 
-    run_cmd: str = f"{exe} --nosim {args} --wait_uart --attach_uart_cmd='{attach_cmd}'"
-    return run_cmd
+    # 5. Create command for running the handbrake device, if real time is requested:
+    if real_time:
+        handbrake_run_cmd: str = f"./bs_device_handbrake -s={sim_id} -d={num_devices}"
+        num_devices += 1
+        run_command(
+            cmd=handbrake_run_cmd,
+            desc="Running handbrake device in BabbleSim PHY",
+            cwd=final_bin_dir,
+            mode=CmdMode.BACKGROUND,
+        )
+
+    # 6. Create command for running the PHY itself, which starts the simulation proper:
+    phy_run_cmd: str = f"./bs_2G4_phy_v1 -s={sim_id} -D={num_devices}"
+    run_command(
+        cmd=phy_run_cmd,
+        desc="Starting BabbleSim PHY",
+        cwd=final_bin_dir,
+        mode=CmdMode.FOREGROUND,
+    )
 
 
-def common_run_task(cache: BuildCache, extra_args: list[str] | None) -> None:
+def common_run_task(cache: BuildCache) -> None:
     """Common run steps for most targets.
 
     * For BabbleSim builds, runs the natively built binary directly.
     """
     if cache.board.is_bsim:
-        run_command(
-            cmd=_get_bsim_run_cmd(cache, extra_args, attach_to_uart=True),
-            desc=f"Running '{cache.triplet}' natively",
-            mode=CmdMode.REPLACE,
-        )
+        _run_app_in_bsim(cache, dbg_app=False, real_time=True)
     else:
         log.fatal("Direct running on board not yet implemented.")
 
 
-def common_debug_task(cache: BuildCache, extra_args: list[str] | None) -> None:
+def common_debug_task(cache: BuildCache) -> None:
     """Common debug steps for most targets.
 
     * For BabbleSim builds, runs the natively built binary through gdb.
     """
     if cache.board.is_bsim:
-        # Don't automatically attach to UART because its a bit unstable when called in combination with gdb:
-        run_cmd: str = _get_bsim_run_cmd(cache, extra_args, attach_to_uart=False)
-        dbg_cmd: str = f"{cache.cmake_cache.gdb} --tui --args {run_cmd}"
-        run_command(cmd=dbg_cmd, desc=f"Debugging '{cache.triplet}' natively", mode=CmdMode.REPLACE)
+        _run_app_in_bsim(cache, dbg_app=True, real_time=True)
     else:
         log.fatal("Direct debugging on board not yet implemented.")

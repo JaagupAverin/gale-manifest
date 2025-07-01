@@ -67,6 +67,7 @@ def _console_printer(
     if event_dict:
         table = Table(box=DETAILS_BOX, border_style=level, show_header=False, show_lines=True, expand=False)
         table.add_column("name", justify="right", style=level, max_width=10)
+        table.add_column("value", justify="left", overflow="fold")
         for key, value in event_dict.items():
             key_text = key.replace("_", " ")
 

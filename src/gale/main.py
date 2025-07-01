@@ -115,7 +115,6 @@ def run(
     board: BoardArg,
     target: TargetArg,
     rebuild: RebuildArg = False,
-    extra_run_args: ExtraRunArgs = None,
 ) -> None:
     """Run the given target, for the given board."""
     trgt: Target = get_target(target)
@@ -124,7 +123,7 @@ def run(
 
     conf: Configuration = Configuration(get_board(board), trgt)
     cache: BuildCache = conf.build() if rebuild else conf.get_build_cache()
-    trgt.run_handler(cache, extra_run_args)
+    trgt.run_handler(cache)
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
@@ -132,7 +131,6 @@ def debug(
     board: BoardArg,
     target: TargetArg,
     rebuild: RebuildArg = False,
-    extra_run_args: ExtraRunArgs = None,
 ) -> None:
     """Debug the given target, for the given board."""
     trgt: Target = get_target(target)
@@ -141,7 +139,7 @@ def debug(
 
     conf: Configuration = Configuration(get_board(board), trgt)
     cache: BuildCache = conf.build() if rebuild else conf.get_build_cache()
-    trgt.debug_handler(cache, extra_run_args)
+    trgt.debug_handler(cache)
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
@@ -194,10 +192,7 @@ if __name__ == "__main__":
     app()
 
 
-# TODO1: Look into real-time bsim:
-# https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/nrf_bsim/doc/nrf52_bsim.html#about_time_in_babblesim
-# TODO2: Make sure shell works over pty :)
-
+# TODO: Just got handbrake working. Look a bit more at the run/debug commands and maybe add --real-time option!
 # TODO3: Look into build targets - think sysbuild is changing things up already?
 # TODO4: Continue with the flash simulator testing with flash_bin or whatever
 # TODO5: Remove build/ from git.

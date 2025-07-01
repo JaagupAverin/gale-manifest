@@ -56,9 +56,9 @@ class Target:
 
     post_build_handler: Callable[[BuildCache], None] | None = None
     """Callback function called after building the target."""
-    run_handler: Callable[[BuildCache, Args], None] | None = None
+    run_handler: Callable[[BuildCache], None] | None = None
     """Callback function that implements running the target."""
-    debug_handler: Callable[[BuildCache, Args], None] | None = None
+    debug_handler: Callable[[BuildCache], None] | None = None
     """Callback function that implements debugging the target."""
 
 
@@ -98,6 +98,10 @@ class CMakeCache:
     @property
     def elf_path(self) -> str:
         return self.get("BYPRODUCT_KERNEL_ELF_NAME")
+
+    @property
+    def bsim_out_path(self) -> str:
+        return self.get("BSIM_OUT_PATH")
 
 
 class BuildCache:
