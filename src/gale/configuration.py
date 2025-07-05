@@ -59,8 +59,7 @@ class Configuration:
         self._cache_build_args(extra_args)
 
         build_cache: BuildCache = self.get_build_cache()
-        if self.target.post_build_handler:
-            self.target.post_build_handler(build_cache)
+        self.target.post_build(build_cache)
         return build_cache
 
     def get_build_cache(self) -> BuildCache:

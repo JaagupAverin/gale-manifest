@@ -60,11 +60,35 @@ ExtraBuildArgs = Annotated[
     ),
 ]
 
-ExtraRunArgs = Annotated[
-    list[str] | None,
-    typer.Argument(
-        help="Extra arguments to pass to the underlying runner, e.g. to the BabbleSim executable.",
-        show_default=False,
+
+GdbArg = Annotated[
+    bool,
+    typer.Option(
+        help=(
+            "Run the application with gdb."
+        ),
+        show_default=True,
+    ),
+]
+
+ValgrindArg = Annotated[
+    bool,
+    typer.Option(
+        help=(
+            "Run the application with valgrind."
+        ),
+        show_default=True,
+    ),
+]
+
+RealTimeArg = Annotated[
+    bool,
+    typer.Option(
+        help=(
+            "Run in real-time, i.e K_SECONDS(1) shall equal to roughly 1 second in real time. "
+            "This is relevant only when running in BabbleSim, which otherwise will run the app at max CPU speed."
+        ),
+        show_default=True,
     ),
 ]
 

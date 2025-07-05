@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -7,7 +8,6 @@ from typing import TYPE_CHECKING
 from gale import log
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from pathlib import Path
 
 
@@ -44,7 +44,7 @@ Args = list[str] | None
 
 
 @dataclass
-class Target:
+class Target(ABC):
     name: str
     """Human readable name without any semantic meaning."""
     parent_project: Project
@@ -54,12 +54,19 @@ class Target:
     build_subdir: str | None = None
     """Subdirectory INSIDE the build/ directory itself; i.e. for multi-target builds like sysbuild."""
 
-    post_build_handler: Callable[[BuildCache], None] | None = None
-    """Callback function called after building the target."""
-    run_handler: Callable[[BuildCache], None] | None = None
-    """Callback function that implements running the target."""
-    debug_handler: Callable[[BuildCache], None] | None = None
-    """Callback function that implements debugging the target."""
+    def post_build(self, cache: BuildCache) -> None:
+        """Runs arbitrary optional steps after the target has been built.
+
+        May be overridden if target requires a more complicated post-build process."""
+        from gale.tasks import common_post_build_task
+        common_post_build_task(cache)
+
+    def run(self, cache: BuildCache, *, gdb: bool, valgrind: bool, real_time: bool) -> None:
+        """Implements running/debugging the target.
+
+        May be overridden if target requires a more complicated run process."""
+        from gale.tasks import common_run_task
+        common_run_task(cache, gdb=gdb, valgrind=valgrind, real_time=real_time)
 
 
 class CMakeCache:

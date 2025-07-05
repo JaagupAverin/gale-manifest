@@ -15,11 +15,13 @@ from gale.typer_args import (
     BaudrateArg,
     BoardArg,
     ExtraBuildArgs,
-    ExtraRunArgs,
+    GdbArg,
     PortArg,
     ProjectArg,
+    RealTimeArg,
     RebuildArg,
     TargetArg,
+    ValgrindArg,
 )
 from gale.util import CmdMode, in_venv, run_command, serial_monitor
 
@@ -115,31 +117,18 @@ def run(
     board: BoardArg,
     target: TargetArg,
     rebuild: RebuildArg = False,
+    gdb: GdbArg = False,
+    valgrind: ValgrindArg = False,
+    real_time: RealTimeArg = False,
 ) -> None:
     """Run the given target, for the given board."""
-    trgt: Target = get_target(target)
-    if not trgt.run_handler:
-        log.fatal(f"Target '{trgt.name}' does not support running.")
+    if gdb and valgrind:
+        raise typer.BadParameter("gdb and valgrind options are mutually exclusive")
 
+    trgt: Target = get_target(target)
     conf: Configuration = Configuration(get_board(board), trgt)
     cache: BuildCache = conf.build() if rebuild else conf.get_build_cache()
-    trgt.run_handler(cache)
-
-
-@app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
-def debug(
-    board: BoardArg,
-    target: TargetArg,
-    rebuild: RebuildArg = False,
-) -> None:
-    """Debug the given target, for the given board."""
-    trgt: Target = get_target(target)
-    if not trgt.debug_handler:
-        log.fatal(f"Target '{trgt.name}' does not support debugging.")
-
-    conf: Configuration = Configuration(get_board(board), trgt)
-    cache: BuildCache = conf.build() if rebuild else conf.get_build_cache()
-    trgt.debug_handler(cache)
+    trgt.run(cache, gdb=gdb, valgrind=valgrind, real_time=real_time)
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
@@ -180,6 +169,8 @@ def setup() -> None:
 
     Usage: gale setup
     """
+
+    # Build BabbleSim:
     run_command(
         cmd="make everything -j 8",
         desc="Building BabbleSim",
@@ -192,7 +183,8 @@ if __name__ == "__main__":
     app()
 
 
-# TODO: Just got handbrake working. Look a bit more at the run/debug commands and maybe add --real-time option!
-# TODO3: Look into build targets - think sysbuild is changing things up already?
-# TODO4: Continue with the flash simulator testing with flash_bin or whatever
-# TODO5: Remove build/ from git.
+# TODO: flash.bin is being created, but writing to it broke? Get it working again! Also maybe explicitly move it somewhere else then if it won't go on its own :/
+# TODO: Check out CONFIG_ASAN if its doing anything;
+# TODO: Check out tracing;
+# TODO: Remove build/ from git;
+# TODO: Look into build targets - think sysbuild is changing things up already?

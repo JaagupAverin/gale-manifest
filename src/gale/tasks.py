@@ -36,7 +36,8 @@ def common_post_build_task(cache: BuildCache) -> None:
 def _run_app_in_bsim(
     cache: BuildCache,
     *,
-    dbg_app: bool,
+    gdb: bool,
+    valgrind: bool,
     real_time: bool,
 ) -> None:
     """Given that the target was built as a BabbleSim executable, runs the binary natively.
@@ -85,10 +86,10 @@ def _run_app_in_bsim(
     final_exe: str = str(shutil.copy(exe, final_bin_dir))
 
     # 3. Run application device itself:
-    if dbg_app:
+    if gdb:
         # In case of debugging, we cannot attach to UART in the same terminal as gdb, so instead we
         # print out a message instructing the user to attach the UART, and wait until it is attached.
-        uart_attach_cmd: str = r"echo App\halted\ until\ UART\ attached!\ Use:\ gale\ monitor\ --port\ %s"
+        uart_attach_cmd: str = r"echo App\ halted\ until\ UART\ attached!\ Use:\ gale\ monitor\ --port\ %s"
         uart_args: str = f'--wait_uart --attach_uart_cmd="{uart_attach_cmd}"'
         app_run_cmd: str = f"{cache.cmake_cache.gdb} --tui --args {final_exe} -s={sim_id} -d={num_devices} {uart_args}"
     else:
@@ -96,6 +97,8 @@ def _run_app_in_bsim(
         uart_attach_cmd = "gale monitor --port %s --terminal"
         uart_args = f'--wait_uart --attach_uart_cmd="{uart_attach_cmd}"'
         app_run_cmd = f"{final_exe} -s={sim_id} -d={num_devices} {uart_args}"
+        if valgrind:
+            app_run_cmd = f"valgrind --tool=memcheck --leak-check=full {app_run_cmd}"
     num_devices += 1
     run_command(
         cmd=app_run_cmd,
@@ -125,23 +128,12 @@ def _run_app_in_bsim(
     )
 
 
-def common_run_task(cache: BuildCache) -> None:
+def common_run_task(cache: BuildCache, *, gdb: bool, valgrind: bool, real_time: bool,) -> None:
     """Common run steps for most targets.
 
     * For BabbleSim builds, runs the natively built binary directly.
     """
     if cache.board.is_bsim:
-        _run_app_in_bsim(cache, dbg_app=False, real_time=True)
+        _run_app_in_bsim(cache, gdb=gdb, valgrind=valgrind, real_time=real_time)
     else:
         log.fatal("Direct running on board not yet implemented.")
-
-
-def common_debug_task(cache: BuildCache) -> None:
-    """Common debug steps for most targets.
-
-    * For BabbleSim builds, runs the natively built binary through gdb.
-    """
-    if cache.board.is_bsim:
-        _run_app_in_bsim(cache, dbg_app=True, real_time=True)
-    else:
-        log.fatal("Direct debugging on board not yet implemented.")
