@@ -45,8 +45,8 @@ class CmdMode(Enum):
     FOREGROUND = 0  # Run program with stdout/stdin piped to active terminal;
     BACKGROUND = 1  # Run program with stdout/stdin piped to a new virtual port;
     CAPTURE_RESULT = 2  # Run program without live stdout/stdin - only return result;
-    REPLACE = 3  # Terminate Python and replace the terminal with the given command;
-    SPAWN = 4  # Run program as a completely detached new process; return values not be made available;
+    SPAWN_NEW_TERMINAL = 4  # Run program as a completely detached new process; return values not be made available;
+    REPLACE = 5  # Terminate Python and replace the terminal with the given command;
 
 
 def _run_actual(
@@ -87,7 +87,7 @@ def _run_actual(
             cmd_handle.stdout = f"Invalid working directory {cwd}"
 
 
-def _run_in_terminal(cmd: str) -> str:
+def _run_in_new_terminal(cmd: str) -> str:
     """Returns a new command that runs the given command in a terminal window.
 
     e.g 'ls -l' might become 'konsole -e "ls -l"'
@@ -133,20 +133,27 @@ def run_command(
     elif mode == CmdMode.FOREGROUND:
         pipe = None
         log.inf("Running command in foreground.", desc=desc, cmd=cmd, cwd=cwd)
+    elif mode == CmdMode.SPAWN_NEW_TERMINAL:
+        cmd = _run_in_new_terminal(cmd)
+        args: list[str] = shlex.split(cmd)
+        os.chdir(cwd)
+        pid: int = os.spawnvpe(os.P_NOWAIT, args[0], args, os.environ)  # noqa: S606
+        log.inf(
+            "Running command as a detached process (new terminal).",
+            desc=desc,
+            cmd=cmd,
+            cwd=cwd,
+            pid=pid,
+        )
+        return cmd_handle
     elif mode == CmdMode.REPLACE:
         # This will terminate the current Python process, and instead pass the path and environment
         # to the new process that shall inherit this terminal. This is required for cases where
         # Python causes issues as the middle-man (e.g. catching interrupt signals, etc).
         log.inf("Running command in foreground (replacing Python!).", desc=desc, cmd=cmd, cwd=cwd)
         os.chdir(cwd)
-        args: list[str] = shlex.split(cmd)
-        os.execvpe(args[0], args, os.environ)  # noqa: S606
-    elif mode == CmdMode.SPAWN:
-        cmd = _run_in_terminal(cmd)
         args = shlex.split(cmd)
-        pid: int = os.spawnvpe(os.P_NOWAIT, args[0], args, os.environ)  # noqa: S606
-        log.inf("Running command as a detached process.", desc=desc, cmd=cmd, cwd=cwd, pid=pid)
-        return cmd_handle
+        os.execvpe(args[0], args, os.environ)  # noqa: S606
     else:
         log.dbg("Running command for its stdout value.", cmd=cmd)
         pipe = subprocess.PIPE
@@ -217,7 +224,7 @@ def serial_monitor(*, port: str, baud: int, spawn_new_terminal: bool = False) ->
     run_command(
         cmd=cmd,
         desc=f"Monitoring device on {port} at {baud} baud",
-        mode=CmdMode.SPAWN if spawn_new_terminal else CmdMode.FOREGROUND,
+        mode=CmdMode.SPAWN_NEW_TERMINAL if spawn_new_terminal else CmdMode.REPLACE,
     )
 
 

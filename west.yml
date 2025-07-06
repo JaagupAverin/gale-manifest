@@ -36,6 +36,7 @@ manifest:
           - cmsis_6
           # Optional dependencies:
           - mcuboot
+          - littlefs
           # BabbleSim:
           - bsim
           - bsim/components

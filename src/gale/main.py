@@ -1,5 +1,5 @@
 import os
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import typer
 
@@ -9,8 +9,7 @@ from gale.configuration import Configuration
 from gale.data.boards import get_board
 from gale.data.paths import BSIM_DIR
 from gale.data.projects import PROJECTS, ZEPHYR_PROJECT, get_project
-from gale.data.structs import BuildCache, Project, Target
-from gale.data.targets import get_target
+from gale.data.targets import RawTarget, get_target
 from gale.typer_args import (
     BaudrateArg,
     BoardArg,
@@ -21,9 +20,11 @@ from gale.typer_args import (
     RealTimeArg,
     RebuildArg,
     TargetArg,
-    ValgrindArg,
 )
 from gale.util import CmdMode, in_venv, run_command, serial_monitor
+
+if TYPE_CHECKING:
+    from gale.data.structs import BuildCache, Project, Target
 
 app: typer.Typer = typer.Typer(name="woid", rich_markup_mode="rich", no_args_is_help=True)
 
@@ -118,27 +119,23 @@ def run(
     target: TargetArg,
     rebuild: RebuildArg = False,
     gdb: GdbArg = False,
-    valgrind: ValgrindArg = False,
     real_time: RealTimeArg = False,
 ) -> None:
     """Run the given target, for the given board."""
-    if gdb and valgrind:
-        raise typer.BadParameter("gdb and valgrind options are mutually exclusive")
-
     trgt: Target = get_target(target)
     conf: Configuration = Configuration(get_board(board), trgt)
     cache: BuildCache = conf.build() if rebuild else conf.get_build_cache()
-    trgt.run(cache, gdb=gdb, valgrind=valgrind, real_time=real_time)
+    trgt.run(cache, gdb=gdb, real_time=real_time)
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
 def monitor(
     port: PortArg,
     baud: BaudrateArg = 115200,
-    terminal: Annotated[bool, typer.Option(help="Spawn a new terminal window for the monitor")] = False,
+    new_terminal: Annotated[bool, typer.Option(help="Spawn a new terminal window for the monitor")] = False,
 ) -> None:
     """Monitor an already running device; i.e. attach to the given port for shell or console."""
-    serial_monitor(port=port, baud=baud, spawn_new_terminal=terminal)
+    serial_monitor(port=port, baud=baud, spawn_new_terminal=new_terminal)
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
@@ -153,7 +150,7 @@ def cmake(
     This command is for testing and developing non-hardcoded-targets such as 'help'.
     """
     prj: Project = get_project(project)
-    trgt: Target = Target(
+    trgt: Target = RawTarget(
         name=cmake_target,
         parent_project=prj,
         cmake_target=cmake_target,
@@ -182,8 +179,6 @@ if __name__ == "__main__":
     app()
 
 
-# TODO: flash.bin is being created, but writing to it broke? Get it working again! Also maybe explicitly move it somewhere else then if it won't go on its own :/
-# TODO: Check out CONFIG_ASAN and CONFIG_UBSAN if its doing anything;
-# TODO: Check out tracing;
-# TODO: Remove build/ from git;
-# TODO: Look into build targets - think sysbuild is changing things up already?
+# TODO: get the fk shell working
+# TODO: flash.bin is being created, but writing to it broke? Get it working again!
+# BIG TODO: Get mcuboot working with flash.bin and sysbuild

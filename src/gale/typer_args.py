@@ -64,19 +64,7 @@ ExtraBuildArgs = Annotated[
 GdbArg = Annotated[
     bool,
     typer.Option(
-        help=(
-            "Run the application with gdb."
-        ),
-        show_default=True,
-    ),
-]
-
-ValgrindArg = Annotated[
-    bool,
-    typer.Option(
-        help=(
-            "Run the application with valgrind."
-        ),
+        help=("Run the application with gdb."),
         show_default=True,
     ),
 ]

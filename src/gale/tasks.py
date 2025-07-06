@@ -3,7 +3,7 @@ import textwrap
 from pathlib import Path
 
 from gale import log
-from gale.data.projects import MANIFEST_PROJECT
+from gale.data.projects import MANIFEST_PROJECT, ZEPHYR_PROJECT
 from gale.data.structs import BuildCache
 from gale.util import CmdMode, run_command, source_environment
 
@@ -36,8 +36,8 @@ def _run_app_in_bsim(
     cache: BuildCache,
     *,
     gdb: bool,
-    valgrind: bool,
     real_time: bool,
+    tracing: bool = True,
 ) -> None:
     """Given that the target was built as a BabbleSim executable, runs the binary natively.
 
@@ -54,10 +54,11 @@ def _run_app_in_bsim(
            such as gdb or BabbleSim.
     gdb: if True, runs the app with gdb (gdb in foreground, application in background with a virtual port);
          mutually exclusive with valgrind;
-    valgrind: if True, runs the app with valgrind;
-              mutually exclusive with gdb;
     real_time: if True, the simulation will run in "real time", i.e K_SECONDS(1) corresponds to 1 second of real time;
                if False, the simulation runs at maximum speed (limited only by host CPU); good for running tests;
+    tracing: if True, passes the --trace-file argument to the BabbleSim executable in order to store trace data
+             (trace data is stored into the final run/results directory);
+             if False, trace data may still be generated, but into an unknown directory;
 
     """
     source_environment(cache.board.env)
@@ -70,11 +71,13 @@ def _run_app_in_bsim(
     bsim_bin_dir: Path = bsim_out_path / "bin"
     bsim_lib_dir: Path = bsim_out_path / "lib"
 
-    final_dir: Path = cache.build_dir / "bsim"
-    shutil.rmtree(final_dir, ignore_errors=True)
+    final_dir: Path = cache.target.parent_project.dir / "bsim"
     final_dir.mkdir(parents=True, exist_ok=True)
     final_bin_dir: Path = final_dir / "bin"
     final_lib_dir: Path = final_dir / "lib"
+    final_results_dir: Path = final_dir / "results"
+
+    common_args = ""
 
     # All devices shall be "linked together" by the same simulation ID;
     # Once the phy is executed, all devices with the same simulation ID will share the same phy:
@@ -88,26 +91,40 @@ def _run_app_in_bsim(
     # 2. Copy the app device itself to the final folder:
     final_exe: str = str(shutil.copy(exe, final_bin_dir))
 
-    # 3. Run application device itself:
+    # 3. Prepare tracing if required:
+    if tracing:
+        # Copy Zephyr's metadata file to same directory as our final trace data file:
+        trace_metadata = f"{ZEPHYR_PROJECT.dir / 'subsys/tracing/ctf/tsdl/metadata'}"
+        shutil.copy(trace_metadata, final_results_dir / "metadata")
+
+        # Tell application to output trace data to custom file:
+        trace_file_arg = f"--trace-file={final_results_dir}/trace_data"
+        common_args += f" {trace_file_arg}"
+
+    # Use a well-defined path for the flash binary, which is used for persistent storage of flash data:
+    simulated_flash_bin_arg: str = f"--flash={final_results_dir}/flash.bin"
+    common_args += f" {simulated_flash_bin_arg}"
+
+    # 4. Run application device itself:
     if gdb:
         # In case of debugging, we cannot attach to UART in the same terminal as gdb, so instead we
         # print out a message instructing the user to attach the UART, and wait until it is attached.
         uart_attach_cmd: str = r"echo App\ halted\ until\ UART\ attached!\ Use:\ gale\ monitor\ --port\ %s"
         uart_args: str = f'--wait_uart --attach_uart_cmd="{uart_attach_cmd}"'
-        app_run_cmd: str = f"{cache.cmake_cache.gdb} --tui --args {final_exe} -s={sim_id} -d={num_devices} {uart_args}"
+        app_run_cmd: str = (
+            f"{cache.cmake_cache.gdb} --tui --args {final_exe} -s={sim_id} -d={num_devices} {uart_args} {common_args}"
+        )
     else:
         # In case of running directly, attach the UART immediately:
-        uart_attach_cmd = "gale monitor --port %s --terminal"
+        uart_attach_cmd = "gale monitor --port %s --new-terminal"
         uart_args = f'--wait_uart --attach_uart_cmd="{uart_attach_cmd}"'
-        app_run_cmd = f"{final_exe} -s={sim_id} -d={num_devices} {uart_args}"
-        if valgrind:
-            app_run_cmd = f"valgrind --tool=memcheck --leak-check=full {app_run_cmd}"
+        app_run_cmd = f"{final_exe} -s={sim_id} -d={num_devices} {uart_args} {common_args}"
     num_devices += 1
     run_command(
         cmd=app_run_cmd,
         desc=f"Running target '{cache.target.name}' device in BabbleSim",
         cwd=final_bin_dir,
-        mode=CmdMode.SPAWN,
+        mode=CmdMode.SPAWN_NEW_TERMINAL,
     )
 
     # 5. Run the handbrake device, if real time is requested:
@@ -131,18 +148,12 @@ def _run_app_in_bsim(
     )
 
 
-def common_run_task(
-    cache: BuildCache,
-    *,
-    gdb: bool,
-    valgrind: bool,
-    real_time: bool,
-) -> None:
+def common_run_task(cache: BuildCache, *, gdb: bool, real_time: bool) -> None:
     """Common run steps for most targets.
 
     * For BabbleSim builds, runs the natively built binary directly.
     """
     if cache.board.is_bsim:
-        _run_app_in_bsim(cache, gdb=gdb, valgrind=valgrind, real_time=real_time)
+        _run_app_in_bsim(cache, gdb=gdb, real_time=real_time)
     else:
         log.fatal("Direct running on board not yet implemented.")

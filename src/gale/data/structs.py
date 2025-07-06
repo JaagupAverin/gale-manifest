@@ -1,14 +1,9 @@
-from __future__ import annotations
-
 import re
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 from gale import log
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 @dataclass
@@ -54,23 +49,13 @@ class Target(ABC):
     build_subdir: str | None = None
     """Subdirectory INSIDE the build/ directory itself; i.e. for multi-target builds like sysbuild."""
 
-    def post_build(self, cache: BuildCache) -> None:
-        """Runs arbitrary optional steps after the target has been built.
+    @abstractmethod
+    def post_build(self, cache: "BuildCache") -> None:
+        """Implements arbitrary optional steps after the target has been built."""
 
-        May be overridden if target requires a more complicated post-build process.
-        """
-        from gale.tasks import common_post_build_task  # noqa: PLC0415
-
-        common_post_build_task(cache)
-
-    def run(self, cache: BuildCache, *, gdb: bool, valgrind: bool, real_time: bool) -> None:
-        """Implements running/debugging the target.
-
-        May be overridden if target requires a more complicated run process.
-        """
-        from gale.tasks import common_run_task  # noqa: PLC0415
-
-        common_run_task(cache, gdb=gdb, valgrind=valgrind, real_time=real_time)
+    @abstractmethod
+    def run(self, cache: "BuildCache", *, gdb: bool, real_time: bool) -> None:
+        """Implements running/debugging the target."""
 
 
 class CMakeCache:
