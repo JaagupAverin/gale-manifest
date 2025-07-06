@@ -180,5 +180,5 @@ if __name__ == "__main__":
 
 
 # TODO: get the fk shell working
-# TODO: flash.bin is being created, but writing to it broke? Get it working again!
+# TODO: Add fstab for littlefs.
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild

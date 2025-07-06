@@ -18,6 +18,7 @@ A Zephyr demo that shows how to set up a multi-application project with a shared
 
 - [nRF54L15 Datasheet](https://docs.nordicsemi.com/bundle/ps_nrf54L15/page/keyfeatures_html5.html)
 - [nrf54L15 HW](https://docs.nordicsemi.com/bundle/ug_nrf54l15_dk/page/UG/nRF54L15_DK/intro/intro.html)
+- [native_sim](https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/native_sim/doc/index.html)
 
 ## Quickstart:
 
@@ -62,13 +63,20 @@ See `gale --help` for all commands. Install shell completions using `gale --inst
 e.g. for simulating an application:
 
 ```bash
-gale setup
-gale simulate hmi
+gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
 ```
+
+## Notable Zephyr features:
+
+- Use of `CONFIG_ASAN=y` and `CONFIG_UBSAN=y`
+- Use of `CONFIG_TRACING=y`
+- Use of `CONFIG_FLASH_SIMULATOR=y` and `CONFIG_FUSE_FS_ACCESS=y`
+- Use of `VERSION` file
+- Use of BabbleSim for running apps on host machine
 
 ## Appendix
 
-# For new project consider:
+# Zephyr features still to review:
 
 ## Tooling:
 
