@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from abc import ABC
 import re
+from abc import ABC
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -57,15 +57,19 @@ class Target(ABC):
     def post_build(self, cache: BuildCache) -> None:
         """Runs arbitrary optional steps after the target has been built.
 
-        May be overridden if target requires a more complicated post-build process."""
-        from gale.tasks import common_post_build_task
+        May be overridden if target requires a more complicated post-build process.
+        """
+        from gale.tasks import common_post_build_task  # noqa: PLC0415
+
         common_post_build_task(cache)
 
     def run(self, cache: BuildCache, *, gdb: bool, valgrind: bool, real_time: bool) -> None:
         """Implements running/debugging the target.
 
-        May be overridden if target requires a more complicated run process."""
-        from gale.tasks import common_run_task
+        May be overridden if target requires a more complicated run process.
+        """
+        from gale.tasks import common_run_task  # noqa: PLC0415
+
         common_run_task(cache, gdb=gdb, valgrind=valgrind, real_time=real_time)
 
 

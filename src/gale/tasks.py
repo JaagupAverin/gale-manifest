@@ -1,6 +1,5 @@
 import shutil
 import textwrap
-from enum import Enum
 from pathlib import Path
 
 from gale import log
@@ -51,8 +50,12 @@ def _run_app_in_bsim(
 
     Parameters
     ----------
-    dbg_app: if True, runs gdb in the foreground and app in the background (attachable through a virtual port);
-             if False, app will run normally in the foreground;
+    cache: used to locate all build artifacts, and determine location of tools,
+           such as gdb or BabbleSim.
+    gdb: if True, runs the app with gdb (gdb in foreground, application in background with a virtual port);
+         mutually exclusive with valgrind;
+    valgrind: if True, runs the app with valgrind;
+              mutually exclusive with gdb;
     real_time: if True, the simulation will run in "real time", i.e K_SECONDS(1) corresponds to 1 second of real time;
                if False, the simulation runs at maximum speed (limited only by host CPU); good for running tests;
 
@@ -102,23 +105,23 @@ def _run_app_in_bsim(
     num_devices += 1
     run_command(
         cmd=app_run_cmd,
-        desc=f"Running target '{cache.target.name}' device in BabbleSim PHY",
+        desc=f"Running target '{cache.target.name}' device in BabbleSim",
         cwd=final_bin_dir,
         mode=CmdMode.SPAWN,
     )
 
-    # 5. Create command for running the handbrake device, if real time is requested:
+    # 5. Run the handbrake device, if real time is requested:
     if real_time:
         handbrake_run_cmd: str = f"./bs_device_handbrake -s={sim_id} -d={num_devices}"
         num_devices += 1
         run_command(
             cmd=handbrake_run_cmd,
-            desc="Running handbrake device in BabbleSim PHY",
+            desc="Running handbrake device in BabbleSim",
             cwd=final_bin_dir,
             mode=CmdMode.BACKGROUND,
         )
 
-    # 6. Create command for running the PHY itself, which starts the simulation proper:
+    # 6. Run the PHY itself, which starts the simulation proper:
     phy_run_cmd: str = f"./bs_2G4_phy_v1 -s={sim_id} -D={num_devices}"
     run_command(
         cmd=phy_run_cmd,
@@ -128,7 +131,13 @@ def _run_app_in_bsim(
     )
 
 
-def common_run_task(cache: BuildCache, *, gdb: bool, valgrind: bool, real_time: bool,) -> None:
+def common_run_task(
+    cache: BuildCache,
+    *,
+    gdb: bool,
+    valgrind: bool,
+    real_time: bool,
+) -> None:
     """Common run steps for most targets.
 
     * For BabbleSim builds, runs the natively built binary directly.

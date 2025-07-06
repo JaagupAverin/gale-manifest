@@ -169,7 +169,6 @@ def setup() -> None:
 
     Usage: gale setup
     """
-
     # Build BabbleSim:
     run_command(
         cmd="make everything -j 8",
@@ -184,7 +183,7 @@ if __name__ == "__main__":
 
 
 # TODO: flash.bin is being created, but writing to it broke? Get it working again! Also maybe explicitly move it somewhere else then if it won't go on its own :/
-# TODO: Check out CONFIG_ASAN if its doing anything;
+# TODO: Check out CONFIG_ASAN and CONFIG_UBSAN if its doing anything;
 # TODO: Check out tracing;
 # TODO: Remove build/ from git;
 # TODO: Look into build targets - think sysbuild is changing things up already?
