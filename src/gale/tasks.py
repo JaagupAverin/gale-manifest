@@ -3,7 +3,7 @@ import textwrap
 from pathlib import Path
 
 from gale import log
-from gale.data.projects import MANIFEST_PROJECT, ZEPHYR_PROJECT
+from gale.data.projects import MANIFEST_PROJECT, SHARED_PROJECT, ZEPHYR_PROJECT
 from gale.data.structs import BuildCache
 from gale.util import CmdMode, run_command, source_environment
 
@@ -52,7 +52,7 @@ def _run_app_in_bsim(
     ----------
     cache: used to locate all build artifacts, and determine location of tools,
            such as gdb or BabbleSim.
-    gdb: if True, runs the app with gdb (gdb in foreground, application in background with a virtual port);
+    gdb: if True, runs the app with gdb (client with TUI);
          mutually exclusive with valgrind;
     real_time: if True, the simulation will run in "real time", i.e K_SECONDS(1) corresponds to 1 second of real time;
                if False, the simulation runs at maximum speed (limited only by host CPU); good for running tests;
@@ -107,13 +107,13 @@ def _run_app_in_bsim(
 
     # 4. Run application device itself:
     if gdb:
+        gdbinit: Path = SHARED_PROJECT.dir / "gdb/.gdbconf"
         # In case of debugging, we cannot attach to UART in the same terminal as gdb, so instead we
         # print out a message instructing the user to attach the UART, and wait until it is attached.
+        # TODO: Can launch with gdbserver instead in the future if want to attach from IDE.
         uart_attach_cmd: str = r"echo App\ halted\ until\ UART\ attached!\ Use:\ gale\ monitor\ --port\ %s"
         uart_args: str = f'--wait_uart --attach_uart_cmd="{uart_attach_cmd}"'
-        app_run_cmd: str = (
-            f"{cache.cmake_cache.gdb} --tui --args {final_exe} -s={sim_id} -d={num_devices} {uart_args} {common_args}"
-        )
+        app_run_cmd: str = f"{cache.cmake_cache.gdb} --tui -x {gdbinit} --args {final_exe} -s={sim_id} -d={num_devices} {uart_args} {common_args}"
     else:
         # In case of running directly, attach the UART immediately:
         uart_attach_cmd = "gale monitor --port %s --new-terminal"
