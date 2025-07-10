@@ -72,6 +72,8 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
 - Use of `CONFIG_TRACING=y`
 - Use of `CONFIG_FLASH_SIMULATOR=y` and `CONFIG_FUSE_FS_ACCESS=y`
 - Use of `VERSION` file
+- Use of C++20 and stdlib
+- Use of littlefs with devicetree-based automounting (using fstab node)
 - Use of BabbleSim for running apps on host machine
 
 ## Appendix

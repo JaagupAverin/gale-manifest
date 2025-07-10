@@ -179,6 +179,6 @@ if __name__ == "__main__":
     app()
 
 
-# TODO: get the fk shell working
+# TODO: get the fk shell working - still won't work :)
 # TODO: Add fstab for littlefs.
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild

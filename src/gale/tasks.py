@@ -67,15 +67,19 @@ def _run_app_in_bsim(
     if not exe.exists():
         log.fatal(f"Output binary '{exe}' does not exist; use build first.")
 
-    bsim_out_path: Path = Path(cache.cmake_cache.bsim_out_path)
-    bsim_bin_dir: Path = bsim_out_path / "bin"
-    bsim_lib_dir: Path = bsim_out_path / "lib"
+    # Inputs:
+    bsim_build_dir: Path = Path(cache.cmake_cache.bsim_out_path)
+    bsim_bin_dir: Path = bsim_build_dir / "bin"
+    bsim_lib_dir: Path = bsim_build_dir / "lib"
 
+    # Outputs:
     final_dir: Path = cache.target.parent_project.dir / "bsim"
-    final_dir.mkdir(parents=True, exist_ok=True)
     final_bin_dir: Path = final_dir / "bin"
     final_lib_dir: Path = final_dir / "lib"
     final_results_dir: Path = final_dir / "results"
+
+    final_dir.mkdir(parents=True, exist_ok=True)
+    final_results_dir.mkdir(parents=True, exist_ok=True)
 
     common_args = ""
 
@@ -85,10 +89,12 @@ def _run_app_in_bsim(
     num_devices: int = 0
 
     # 1. Prepare simulation environment by copying the bsim binaries and libraries to the final folder:
+    log.dbg(f"Preparing to run executable inside {final_bin_dir}")
     shutil.copytree(bsim_bin_dir, final_bin_dir, dirs_exist_ok=True)
     shutil.copytree(bsim_lib_dir, final_lib_dir, dirs_exist_ok=True)
 
     # 2. Copy the app device itself to the final folder:
+    log.dbg(f"Copying executable from {exe}")
     final_exe: str = str(shutil.copy(exe, final_bin_dir))
 
     # 3. Prepare tracing if required:
@@ -113,7 +119,10 @@ def _run_app_in_bsim(
         # TODO: Can launch with gdbserver instead in the future if want to attach from IDE.
         uart_attach_cmd: str = r"echo App\ halted\ until\ UART\ attached!\ Use:\ gale\ monitor\ --port\ %s"
         uart_args: str = f'--wait_uart --attach_uart_cmd="{uart_attach_cmd}"'
-        app_run_cmd: str = f"{cache.cmake_cache.gdb} --tui -x {gdbinit} --args {final_exe} -s={sim_id} -d={num_devices} {uart_args} {common_args}"
+        app_run_cmd: str = (
+            f"{cache.cmake_cache.gdb} --tui -x {gdbinit} --args "
+            f"{final_exe} -s={sim_id} -d={num_devices} {uart_args} {common_args}"
+        )
     else:
         # In case of running directly, attach the UART immediately:
         uart_attach_cmd = "gale monitor --port %s --new-terminal"
