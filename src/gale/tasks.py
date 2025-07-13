@@ -48,18 +48,15 @@ def _run_app_in_bsim(
     4. Running optional devices, such as the handbrake device (if "real time" execution is required);
     5. Running the phy layer;
 
-    Parameters
-    ----------
-    cache: used to locate all build artifacts, and determine location of tools,
-           such as gdb or BabbleSim.
-    gdb: if True, runs the app with gdb (client with TUI);
-         mutually exclusive with valgrind;
-    real_time: if True, the simulation will run in "real time", i.e K_SECONDS(1) corresponds to 1 second of real time;
-               if False, the simulation runs at maximum speed (limited only by host CPU); good for running tests;
-    tracing: if True, passes the --trace-file argument to the BabbleSim executable in order to store trace data
-             (trace data is stored into the final run/results directory);
-             if False, trace data may still be generated, but into an unknown directory;
-
+    Args:
+        cache: used to locate all build artifacts, and determine location of tools, such as gdb or BabbleSim.
+        gdb: if True, runs the app with gdb (client with TUI);
+        real_time: if True, the simulation will run in "real time", i.e K_SECONDS(1) corresponds to 1 second in reality;
+            if False, the simulation runs at maximum speed (limited only by host CPU); good for running tests;
+        tracing: if True, passes the --trace-file argument to the BabbleSim executable in order to store trace data
+            (trace data is stored into the final run/results directory);
+        trace_dir: if True, generated trace data into the specified directory;
+            if False, trace data is still be generated, but into an unspecified directory;
     """
     source_environment(cache.board.env)
 

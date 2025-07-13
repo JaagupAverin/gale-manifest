@@ -34,11 +34,19 @@ class Configuration:
             log.inf(f"Build arguments file not found: {self._build_args_file}")
             return None
 
-    def build(self, extra_args: list[str] | None = None) -> BuildCache:
-        """Build the target, returning the build cache."""
+    def build(self, extra_args: list[str] | None = None, *, load_extra_args_from_disk: bool = False) -> BuildCache:
+        """Build the target, returning the build cache.
+
+        Caches any build arguments to disk for later rebuilds (see `load_extra_args_from_disk`).
+
+        Args:
+            extra_args: additional arguments to pass to 'west build';
+            load_extra_args_from_disk: if set, loads the latest cached build arguments from disk
+                (overrides any provided extra_args!);
+        """
         source_environment(self.board.env)
 
-        if not extra_args:
+        if load_extra_args_from_disk:
             extra_args = self._load_cached_build_args()
         args: str = " ".join(extra_args) if extra_args else ""
 

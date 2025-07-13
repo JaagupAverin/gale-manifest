@@ -109,13 +109,14 @@ def run_command(
 ) -> CmdHandle:
     """Run the given command.
 
-    cmd: command string, e.g "apt install python";
-    desc: human readable description of what the command is doing;
-    mode: determines how the command is run and how the result is handled; see enum;
-    cwd: directory to run command in; defaults to WEST_TOPDIR;
-    fatal: if True, program will terminate on command failure;
-           if False, error is returned.
     Only OS agnostic commands (such as git, python or west) should be used.
+
+    Args:
+        cmd: command string, e.g "apt install python";
+        desc: human readable description of what the command is doing;
+        mode: determines how the command is run and how the result is handled; see enum;
+        cwd: directory to run command in; defaults to WEST_TOPDIR;
+        fatal: if True, program will terminate on command failure; if False, error is returned.
     """
     if cwd is None:
         cwd = GALE_ROOT_DIR

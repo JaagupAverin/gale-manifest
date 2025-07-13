@@ -1,12 +1,11 @@
 exclude = [".git", ".venv"]
-target-version = "py312"
+target-version = "py313"
 line-length = 120
 indent-width = 4
 
 [lint]
 select = ["ALL"]
 ignore = [
-    "ANN10",   # Ignore "Missing type annotation for self": adding type to 'self' is redundant.
     "RUF012",  # Ignore "Missing typing.ClassVar": it cannot be pleased when working with libraries.
     "FBT",     # Ignore "Boolean-types position argument": useless.
     "PLR0913", # Ignore "Too many arguments": useless.
@@ -18,9 +17,14 @@ ignore = [
     "COM812",  # Ignore "Missing trailing comma": handled by Ruff formatter instead.
     "ISC",     # Ignore "Implicit string concatenation": handled by Ruff formatter instead.
     "TRY400",  # Ignore "Use logging.exception in exception handling": not all exceptions in Python are equally important
+    "D213",    # Ignore "First comment line on new row": too much vertical spacing
+    "D203",    # Ignore "Blank line before class": too much vertical spacing
 ]
 fixable = ["ALL"]
 unfixable = [
     "ERA001", # Don't fix: "Commented out code": annoying during development.
     "F401",   # Don't fix: "Unused import": annoying during development.
 ]
+
+[lint.pydocstyle]
+convention = "google"

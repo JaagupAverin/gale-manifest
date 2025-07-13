@@ -89,8 +89,6 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
 
 - ZTest for unit testing: https://docs.zephyrproject.org/latest/develop/sca/index.html
 - Advanced testing with:
-  - Device emulators: https://docs.zephyrproject.org/latest/hardware/emulator/index.html
-  - Simulators: https://docs.zephyrproject.org/latest/boards/native/doc/arch_soc.html
   - Test runner: https://docs.zephyrproject.org/latest/develop/test/twister.html
 
 ## Features:
@@ -111,7 +109,6 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
   - Breakpoint-while-running: https://docs.zephyrproject.org/latest/services/debugging/debugmon.html#cortex-m-debug-monitor
   - Runtime address inspection: https://docs.zephyrproject.org/latest/services/debugging/symtab.html
 - Misc:
-  - Consider devicetree user nodes: https://docs.zephyrproject.org/latest/build/dts/zephyr-user-node.html
   - Binary descriptors: https://docs.zephyrproject.org/latest/build/dts/bindings.html#dt-bindings
   - Deffered device init: https://docs.zephyrproject.org/latest/kernel/drivers/index.html#deferred-initialization
   - Code relocation: https://docs.zephyrproject.org/latest/kernel/code-relocation.html
@@ -121,3 +118,13 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
 - DTS bindings: https://docs.zephyrproject.org/latest/build/dts/api/bindings.html
 - KConfig: https://docs.zephyrproject.org/latest/kconfig.html
 - HALs: https://docs.zephyrproject.org/latest/develop/manifest/index.html
+
+## Devicetree layers for nrf54l15bsim:
+
+- ./projects/zephyr/boards/native/nrf_bsim/nrf54l15bsim_nrf54l15_cpuapp.dts
+- ./projects/zephyr/dts/arm/nordic/nrf54l15_cpuapp.dtsi
+- ./projects/zephyr/dts/arm/nordic/nrf54l_05_10_15_cpuapp.dtsi
+- ./projects/zephyr/dts/vendor/nordic/nrf54l15.dtsi
+- ./projects/zephyr/dts/vendor/nordic/nrf54l_05_10_15.dtsi
+- ./projects/zephyr/dts/vendor/nordic/nrf_common.dtsi
+- ./projects/zephyr/boards/nordic/nrf54l15dk/nrf54l15dk_nrf54l_05_10_15-pinctrl.dtsi

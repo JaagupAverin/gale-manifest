@@ -124,7 +124,7 @@ def run(
     """Run the given target, for the given board."""
     trgt: Target = get_target(target)
     conf: Configuration = Configuration(get_board(board), trgt)
-    cache: BuildCache = conf.build() if rebuild else conf.get_build_cache()
+    cache: BuildCache = conf.build(load_extra_args_from_disk=True) if rebuild else conf.get_build_cache()
     trgt.run(cache, gdb=gdb, real_time=real_time)
 
 
