@@ -88,6 +88,10 @@ class CMakeCache:
         return self.get("ZEPHYR_BASE")
 
     @property
+    def bin_path(self) -> str:
+        return self.get("BYPRODUCT_KERNEL_BIN_NAME")
+
+    @property
     def exe_path(self) -> str:
         return self.get("BYPRODUCT_KERNEL_EXE_NAME")
 

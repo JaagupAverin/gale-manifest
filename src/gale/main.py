@@ -160,6 +160,30 @@ def cmake(
     conf.build(extra_build_args)
 
 
+@app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
+def bindesc(
+    board: BoardArg,
+    target: TargetArg,
+    cmd: Annotated[str, typer.Argument(help="The command to run")] = "dump",
+) -> None:
+    """Run 'west bindesc' on the given target's binary. Defaults to 'west bindesc dump <binary>'.
+
+    Bindesc stands for 'Binary Descriptor', which is a Zephyr utility for embedding binary data into the target
+    binary in such a way that it can be accessed externally. This tool is a simple wrapper/helper for accessing
+    this data.
+    """
+    trgt: Target = get_target(target)
+
+    conf: Configuration = Configuration(get_board(board), trgt)
+    cache: BuildCache = conf.get_build_cache()
+
+    run_command(
+        cmd=f"west bindesc {cmd} {cache.cmake_cache.bin_path}",
+        desc=f"Running 'west bindesc {cmd}'",
+        mode=CmdMode.FOREGROUND,
+    )
+
+
 @app.command(rich_help_panel=CommandPanel.OTHER)
 def setup() -> None:
     """Install development dependencies for building, flashing, etc. Called once after cloning the workspace.
@@ -179,5 +203,6 @@ if __name__ == "__main__":
     app()
 
 
+# TODO: Tested out binary descriptors. moving on!
 # TODO: Test more and more of the fun stuff on the README list :)
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild

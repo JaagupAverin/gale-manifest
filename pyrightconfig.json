@@ -1,5 +1,5 @@
 {
-  "include": ["scripts"],
+  "include": [],
   "typeCheckingMode": "recommended",
   "reportUnusedCallResult": "none",
   "reportAny": "none",
