@@ -203,6 +203,6 @@ if __name__ == "__main__":
     app()
 
 
-# TODO: Tested out binary descriptors. moving on!
+# TODO: Look into adding an emulated device such as I2C :) https://docs.zephyrproject.org/latest/hardware/emulator/bus_emulators.html#bus-emul
 # TODO: Test more and more of the fun stuff on the README list :)
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild

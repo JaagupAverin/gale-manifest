@@ -32,7 +32,7 @@ def common_post_build_task(cache: BuildCache) -> None:
     task_generate_clangd_file(cache)
 
 
-def _run_app_in_bsim(
+def _run_app_in_bsim(  # noqa: PLR0915
     cache: BuildCache,
     *,
     gdb: bool,
@@ -108,6 +108,15 @@ def _run_app_in_bsim(
     simulated_flash_bin_arg: str = f"--flash={final_results_dir}/flash.bin"
     common_args += f" {simulated_flash_bin_arg}"
 
+    # How often the handbrake triggers or "pokes" the simulation:
+    # Decreasing improves responsiveness, but increases overhead; should not be reduced below 2ms.
+    bsim_handbrake_interval_nsec: int = 5_000
+    if real_time:
+        # MRO: Max Resync Offset; determines max offset from PHY time before the app must resync;
+        # default value is 1sec, but lowering this makes the app more responsive,
+        # which is especially important if using handbrake and responsiveness is needed.
+        common_args += f" --mro={bsim_handbrake_interval_nsec}"
+
     # 4. Run application device itself:
     if gdb:
         gdbinit: Path = SHARED_PROJECT.dir / "gdb/.gdbconf"
@@ -142,7 +151,9 @@ def _run_app_in_bsim(
 
     # 5. Run the handbrake device, if real time is requested:
     if real_time:
-        handbrake_run_cmd: str = f"./bs_device_handbrake -s={sim_id} -d={num_devices}"
+        handbrake_run_cmd: str = (
+            f"./bs_device_handbrake -s={sim_id} -d={num_devices} --pp={bsim_handbrake_interval_nsec}"
+        )
         num_devices += 1
         run_command(
             cmd=handbrake_run_cmd,

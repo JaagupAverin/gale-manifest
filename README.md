@@ -75,6 +75,7 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
 - Use of C++20 and stdlib
 - Use of littlefs with devicetree-based automounting (using fstab node)
 - Use of BabbleSim for running apps on host machine
+- Use of binary descriptors for storing data accessible both from the application and the build system
 
 ## Appendix
 
@@ -109,7 +110,6 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
   - Breakpoint-while-running: https://docs.zephyrproject.org/latest/services/debugging/debugmon.html#cortex-m-debug-monitor
   - Runtime address inspection: https://docs.zephyrproject.org/latest/services/debugging/symtab.html
 - Misc:
-  - Binary descriptors: https://docs.zephyrproject.org/latest/build/dts/bindings.html#dt-bindings
   - Deffered device init: https://docs.zephyrproject.org/latest/kernel/drivers/index.html#deferred-initialization
   - Code relocation: https://docs.zephyrproject.org/latest/kernel/code-relocation.html
 
