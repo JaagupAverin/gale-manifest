@@ -203,6 +203,6 @@ if __name__ == "__main__":
     app()
 
 
-# TODO: Look into adding an emulated device such as I2C :) https://docs.zephyrproject.org/latest/hardware/emulator/bus_emulators.html#bus-emul
+# TODO: Jus got emulated I2C device working, however we found there is smth wrong with CONFIG_ASSERT=y, check it out :)
 # TODO: Test more and more of the fun stuff on the README list :)
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild
