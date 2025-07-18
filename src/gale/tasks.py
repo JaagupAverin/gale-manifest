@@ -3,8 +3,10 @@ import textwrap
 from pathlib import Path
 
 from gale import log
+from gale.configuration import Configuration
+from gale.data.boards import get_board
 from gale.data.projects import MANIFEST_PROJECT, SHARED_PROJECT, ZEPHYR_PROJECT
-from gale.data.structs import BuildCache
+from gale.data.structs import Board, BuildCache, Target
 from gale.util import CmdMode, run_command, source_environment
 
 
@@ -181,3 +183,42 @@ def common_run_task(cache: BuildCache, *, gdb: bool, real_time: bool) -> None:
         _run_app_in_bsim(cache, gdb=gdb, real_time=real_time)
     else:
         log.fatal("Direct running on board not yet implemented.")
+
+
+def run_sca(board: Board, target: Target) -> None:
+    """Run the SCA server for the given build cache."""
+    # 1. Build the target with SCA enabled
+    sca_args: list[str] = [
+        "--",
+        "-DZEPHYR_SCA_VARIANT=codechecker",
+        f"-DCODECHECKER_NAME={target.name}",
+    ]
+    conf: Configuration = Configuration(board, target)
+    cache: BuildCache = conf.build(extra_args=sca_args, load_extra_args_from_disk=True)
+    sca_results_dir: Path = cache.build_dir / "sca" / "codechecker" / "codechecker.plist"
+
+    # 2. Start the SCA server
+    run_command(
+        cmd=f"{cache.cmake_cache.codechecker_exe} server",
+        desc="Running SCA server",
+        cwd=cache.build_dir,
+        mode=CmdMode.BACKGROUND,
+    )
+
+    # 3. Store the analysis results into server
+    run_command(
+        cmd=f"{cache.cmake_cache.codechecker_exe} store {sca_results_dir} -n {target.name}",
+        desc="Storing analysis results into SCA server",
+        cwd=cache.build_dir,
+        mode=CmdMode.FOREGROUND,
+    )
+
+    # 4. Open localhost:8001 in native browser
+    run_command(
+        cmd="open http://localhost:8001",
+        desc="Opening SCA server in browser",
+        cwd=cache.build_dir,
+        mode=CmdMode.FOREGROUND,
+    )
+
+    # TODO: Actually get this working. rn server crashes like a sucker

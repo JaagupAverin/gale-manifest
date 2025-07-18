@@ -10,6 +10,7 @@ from gale.data.boards import get_board
 from gale.data.paths import BSIM_DIR
 from gale.data.projects import PROJECTS, ZEPHYR_PROJECT, get_project
 from gale.data.targets import RawTarget, get_target
+from gale.tasks import run_sca
 from gale.typer_args import (
     BaudrateArg,
     BoardArg,
@@ -110,7 +111,7 @@ def build(
     trgt: Target = get_target(target)
 
     conf: Configuration = Configuration(get_board(board), trgt)
-    conf.build(extra_build_args)
+    conf.build(extra_build_args, save_extra_args_to_disk=True)
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
@@ -161,6 +162,15 @@ def cmake(
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
+def sca(
+    board: BoardArg,
+    target: TargetArg,
+) -> None:
+    """Build project with SCA (Static Code Analysis) and analyze the results."""
+    run_sca(get_board(board), get_target(target))
+
+
+@app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
 def bindesc(
     board: BoardArg,
     target: TargetArg,
@@ -203,6 +213,5 @@ if __name__ == "__main__":
     app()
 
 
-# TODO: Jus got emulated I2C device working, however we found there is smth wrong with CONFIG_ASSERT=y, check it out :)
 # TODO: Test more and more of the fun stuff on the README list :)
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild

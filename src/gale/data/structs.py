@@ -103,6 +103,10 @@ class CMakeCache:
     def bsim_out_path(self) -> str:
         return self.get("BSIM_OUT_PATH")
 
+    @property
+    def codechecker_exe(self) -> str:
+        return self.get("CODECHECKER_EXE")
+
 
 class BuildCache:
     """Stores generated values for a target, such as devicetree, kconfig or CMake values."""
