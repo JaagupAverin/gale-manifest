@@ -10,7 +10,7 @@ from gale.data.boards import get_board
 from gale.data.paths import BSIM_DIR
 from gale.data.projects import PROJECTS, ZEPHYR_PROJECT, get_project
 from gale.data.targets import RawTarget, get_target
-from gale.tasks import run_sca
+from gale.tasks import run_codechecker
 from gale.typer_args import (
     BaudrateArg,
     BoardArg,
@@ -167,7 +167,7 @@ def sca(
     target: TargetArg,
 ) -> None:
     """Build project with SCA (Static Code Analysis) and analyze the results."""
-    run_sca(get_board(board), get_target(target))
+    run_codechecker(get_board(board), get_target(target))
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
@@ -213,5 +213,6 @@ if __name__ == "__main__":
     app()
 
 
+# TODO: Look just a bit more into CodeChecker coverage, maybe can enable some gcc checks or whatever?: https://codechecker.readthedocs.io/en/latest/
 # TODO: Test more and more of the fun stuff on the README list :)
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild

@@ -1,10 +1,11 @@
 import shutil
+import socket
 import textwrap
+import time
 from pathlib import Path
 
 from gale import log
 from gale.configuration import Configuration
-from gale.data.boards import get_board
 from gale.data.projects import MANIFEST_PROJECT, SHARED_PROJECT, ZEPHYR_PROJECT
 from gale.data.structs import Board, BuildCache, Target
 from gale.util import CmdMode, run_command, source_environment
@@ -185,8 +186,27 @@ def common_run_task(cache: BuildCache, *, gdb: bool, real_time: bool) -> None:
         log.fatal("Direct running on board not yet implemented.")
 
 
-def run_sca(board: Board, target: Target) -> None:
-    """Run the SCA server for the given build cache."""
+def is_localhost_port_open(port: int, timeout: float = 10.0) -> bool:
+    start: float = time.time()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(timeout)
+        while time.time() - start < timeout:
+            res: int = s.connect_ex(("localhost", port))
+            if res == 0:
+                return True
+            time.sleep(0.1)
+    return False
+
+
+def run_codechecker(board: Board, target: Target, *, build: bool = False) -> None:
+    """Analyze the project with CodeChecker SCA.
+
+    This involves:
+        * building the target;
+        * starting CodeChecker server;
+        * storing the build results into the server;
+        * connecting to the server with a web browser;
+    """
     # 1. Build the target with SCA enabled
     sca_args: list[str] = [
         "--",
@@ -194,21 +214,27 @@ def run_sca(board: Board, target: Target) -> None:
         f"-DCODECHECKER_NAME={target.name}",
     ]
     conf: Configuration = Configuration(board, target)
-    cache: BuildCache = conf.build(extra_args=sca_args, load_extra_args_from_disk=True)
-    sca_results_dir: Path = cache.build_dir / "sca" / "codechecker" / "codechecker.plist"
-
-    # 2. Start the SCA server
-    run_command(
-        cmd=f"{cache.cmake_cache.codechecker_exe} server",
-        desc="Running SCA server",
-        cwd=cache.build_dir,
-        mode=CmdMode.BACKGROUND,
+    cache: BuildCache = (
+        conf.build(extra_args=sca_args, load_extra_args_from_disk=True) if build else conf.get_build_cache()
     )
 
-    # 3. Store the analysis results into server
+    # 2. Start the CodeChecker server
+    run_command(
+        cmd=f"{cache.cmake_cache.codechecker_exe} server",
+        desc="Starting CodeChecker server",
+        cwd=cache.build_dir,
+        mode=CmdMode.SPAWN_NEW_TERMINAL,
+    )
+    if is_localhost_port_open(8001):
+        log.inf("CodeChecker server started")
+    else:
+        log.fatal("CodeChecker server failed to start")
+
+    # 3. Store the analysis results into the CodeChecker server
+    sca_results_dir: Path = cache.build_dir / "sca" / "codechecker" / "codechecker.plist"
     run_command(
         cmd=f"{cache.cmake_cache.codechecker_exe} store {sca_results_dir} -n {target.name}",
-        desc="Storing analysis results into SCA server",
+        desc="Storing analysis results into CodeChecker server",
         cwd=cache.build_dir,
         mode=CmdMode.FOREGROUND,
     )
@@ -216,9 +242,7 @@ def run_sca(board: Board, target: Target) -> None:
     # 4. Open localhost:8001 in native browser
     run_command(
         cmd="open http://localhost:8001",
-        desc="Opening SCA server in browser",
+        desc="Opening CodeChecker in browser",
         cwd=cache.build_dir,
         mode=CmdMode.FOREGROUND,
     )
-
-    # TODO: Actually get this working. rn server crashes like a sucker

@@ -48,7 +48,9 @@ class Configuration:
         Args:
             extra_args: additional arguments to pass to 'west build';
             load_extra_args_from_disk: if set, loads the latest cached build arguments from disk
-                (overrides any provided extra_args!);
+                (appended to `extra_args`);
+            save_extra_args_to_disk: if set, saves the provided build arguments to disk for later rebuilds.
+                (cannot be used together with `load_extra_args_from_disk`, as this could easily cause weird issues)
         """
         source_environment(self.board.env)
 
@@ -56,12 +58,7 @@ class Configuration:
             extra_args = []
 
         if load_extra_args_from_disk and save_extra_args_to_disk:
-            # If both load and save are enabled, this would recursively keep adding the same build arguments;
-            # However its not intended to be used like that:
-            # Either `save` is enabled, in which case all previously cached arguments are overwritten.
-            # Or `load` is enabled, in which case the previously cached arguments are loaded, but not re-saved.
-            # TODO: Review this logic with fresh mind and then finish SCA.
-            msg = "Cannot load and save build arguments simultaneously; would cause recursion."
+            msg = "Cannot load and save build arguments simultaneously; might cause the same arguments to build up."
             raise ValueError(msg)
 
         if load_extra_args_from_disk:

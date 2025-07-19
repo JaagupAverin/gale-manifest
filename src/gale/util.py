@@ -45,7 +45,7 @@ class CmdMode(Enum):
     FOREGROUND = 0  # Run program with stdout/stdin piped to active terminal;
     BACKGROUND = 1  # Run program with stdout/stdin piped to a new virtual port;
     CAPTURE_RESULT = 2  # Run program without live stdout/stdin - only return result;
-    SPAWN_NEW_TERMINAL = 4  # Run program as a completely detached new process; return values not be made available;
+    SPAWN_NEW_TERMINAL = 4  # Run program as a completely detached new process; return values will not be available;
     REPLACE = 5  # Terminate Python and replace the terminal with the given command;
 
 
