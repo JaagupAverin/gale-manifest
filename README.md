@@ -76,6 +76,7 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
 - Use of littlefs with devicetree-based automounting (using fstab node)
 - Use of BabbleSim for running apps on host machine
 - Use of binary descriptors for storing data accessible both from the application and the build system
+- Use of SCA (CodeChecker)
 
 ## Appendix
 

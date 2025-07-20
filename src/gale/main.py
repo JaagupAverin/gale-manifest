@@ -22,7 +22,7 @@ from gale.typer_args import (
     RebuildArg,
     TargetArg,
 )
-from gale.util import CmdMode, in_venv, run_command, serial_monitor
+from gale.util import CmdMode, in_venv, install_system_packages, run_command, serial_monitor
 
 if TYPE_CHECKING:
     from gale.data.structs import BuildCache, Project, Target
@@ -208,11 +208,12 @@ def setup() -> None:
         cwd=BSIM_DIR,
     )
 
+    install_system_packages(["cppcheck", "clang-tidy"])
+
 
 if __name__ == "__main__":
     app()
 
 
-# TODO: Look just a bit more into CodeChecker coverage, maybe can enable some gcc checks or whatever?: https://codechecker.readthedocs.io/en/latest/
 # TODO: Test more and more of the fun stuff on the README list :)
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild

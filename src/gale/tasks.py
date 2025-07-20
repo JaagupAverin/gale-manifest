@@ -1,3 +1,4 @@
+import code
 import shutil
 import socket
 import textwrap
@@ -198,7 +199,7 @@ def is_localhost_port_open(port: int, timeout: float = 10.0) -> bool:
     return False
 
 
-def run_codechecker(board: Board, target: Target, *, build: bool = False) -> None:
+def run_codechecker(board: Board, target: Target, *, build: bool = True) -> None:
     """Analyze the project with CodeChecker SCA.
 
     This involves:
@@ -208,10 +209,18 @@ def run_codechecker(board: Board, target: Target, *, build: bool = False) -> Non
         * connecting to the server with a web browser;
     """
     # 1. Build the target with SCA enabled
+    # TODO: Re-enable cppcheck in /home/jaagup/projects/gale_ws/gale/projects/shared/codechecker/.codechecker.json
+    #       once
+    codechecker_config: Path = SHARED_PROJECT.dir / "codechecker" / ".codechecker.json"
+    codechecker_args: str = f"--skip={SHARED_PROJECT.dir}/codechecker/skipfile.txt "
+    codechecker_args = codechecker_args.replace(" ", ";")  # Can't have spaces in args, semicolon is alternative
     sca_args: list[str] = [
         "--",
         "-DZEPHYR_SCA_VARIANT=codechecker",
         f"-DCODECHECKER_NAME={target.name}",
+        f"-DCODECHECKER_CONFIG_FILE={codechecker_config}",
+        f"-DCODECHECKER_ANALYZE_OPTS='{codechecker_args}'",
+        "-DCODECHECKER_PARSE_SKIP=1",
     ]
     conf: Configuration = Configuration(board, target)
     cache: BuildCache = (
