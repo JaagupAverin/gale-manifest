@@ -84,7 +84,6 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
 
 ## Tooling:
 
-- Use Static Code Analysis: https://docs.zephyrproject.org/latest/develop/sca/index.html
 - Use sysbuild for multi-target project: https://docs.zephyrproject.org/latest/build/sysbuild/index.html#adding-zephyr-applications-to-sysbuild
 
 ## Testing:
@@ -103,7 +102,6 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
   - Settings: https://docs.zephyrproject.org/latest/services/storage/settings/index.html
   - Task watchdog: https://docs.zephyrproject.org/latest/services/task_wdt/index.html
   - Retention storage: https://docs.zephyrproject.org/latest/services/retention/index.html
-  - RTIO for real-time high performance processing: https://docs.zephyrproject.org/latest/services/rtio/index.html
   - CRC/JSON: https://docs.zephyrproject.org/latest/services/misc.html#json
   - Utils: https://docs.zephyrproject.org/latest/doxygen/html/group__sys-util.html
 - Debugging:
@@ -111,7 +109,6 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
   - Breakpoint-while-running: https://docs.zephyrproject.org/latest/services/debugging/debugmon.html#cortex-m-debug-monitor
   - Runtime address inspection: https://docs.zephyrproject.org/latest/services/debugging/symtab.html
 - Misc:
-  - Deffered device init: https://docs.zephyrproject.org/latest/kernel/drivers/index.html#deferred-initialization
   - Code relocation: https://docs.zephyrproject.org/latest/kernel/code-relocation.html
 
 ## References:

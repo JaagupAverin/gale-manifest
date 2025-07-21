@@ -3,6 +3,7 @@ from typing import Annotated
 import typer
 from serial.tools.list_ports import comports
 
+from gale.configuration import BuildType
 from gale.data.boards import BoardEnum
 from gale.data.projects import ProjectEnum
 from gale.data.targets import TargetEnum
@@ -40,6 +41,33 @@ TargetArg = Annotated[
     ),
 ]
 
+BuildTypeArg = Annotated[
+    BuildType,
+    typer.Option(
+        help=(
+            "Build type: determines the build type, e.g. debug or release. "
+            "This affects the build directory and some build flags."
+        ),
+        show_default=True,
+    ),
+]
+
+PristineArg = Annotated[
+    bool,
+    typer.Option(
+        help=("Pass the --pristine flag to 'west build'."),
+        show_default=True,
+    ),
+]
+
+CmakeOnlyArg = Annotated[
+    bool,
+    typer.Option(
+        help=("Pass the --cmake-only flag to 'west build'."),
+        show_default=True,
+    ),
+]
+
 RebuildArg = Annotated[
     bool,
     typer.Option(
@@ -55,7 +83,7 @@ RebuildArg = Annotated[
 ExtraBuildArgs = Annotated[
     list[str] | None,
     typer.Argument(
-        help="Extra arguments to pass to the underlying build command, e.g. to 'west build'.",
+        help="Extra arguments to pass to cmake, i.e. 'west build -- <args>'.",
         show_default=False,
     ),
 ]

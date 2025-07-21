@@ -5,7 +5,7 @@ import typer
 
 from gale import log
 from gale.common import set_verbose
-from gale.configuration import Configuration
+from gale.configuration import BuildType, Configuration
 from gale.data.boards import get_board
 from gale.data.paths import BSIM_DIR
 from gale.data.projects import PROJECTS, ZEPHYR_PROJECT, get_project
@@ -14,9 +14,12 @@ from gale.tasks import run_codechecker
 from gale.typer_args import (
     BaudrateArg,
     BoardArg,
+    BuildTypeArg,
+    CmakeOnlyArg,
     ExtraBuildArgs,
     GdbArg,
     PortArg,
+    PristineArg,
     ProjectArg,
     RealTimeArg,
     RebuildArg,
@@ -105,26 +108,30 @@ def push(message: str) -> None:
 def build(
     board: BoardArg,
     target: TargetArg,
+    build_type: BuildTypeArg = BuildType.DEBUG,
+    pristine: PristineArg = False,
+    cmake_only: CmakeOnlyArg = False,
     extra_build_args: ExtraBuildArgs = None,
 ) -> None:
     """Build the given target, for the given board."""
     trgt: Target = get_target(target)
 
-    conf: Configuration = Configuration(get_board(board), trgt)
-    conf.build(extra_build_args, save_extra_args_to_disk=True)
+    conf: Configuration = Configuration(get_board(board), trgt, build_type)
+    conf.build(extra_build_args, pristine=pristine, cmake_only=cmake_only, save_extra_args_to_disk=True)
 
 
 @app.command(no_args_is_help=True, rich_help_panel=CommandPanel.PROJECT_DEVELOPMENT)
 def run(
     board: BoardArg,
     target: TargetArg,
+    build_type: BuildTypeArg = BuildType.DEBUG,
     rebuild: RebuildArg = False,
     gdb: GdbArg = False,
     real_time: RealTimeArg = False,
 ) -> None:
     """Run the given target, for the given board."""
     trgt: Target = get_target(target)
-    conf: Configuration = Configuration(get_board(board), trgt)
+    conf: Configuration = Configuration(get_board(board), trgt, build_type)
     cache: BuildCache = conf.build(load_extra_args_from_disk=True) if rebuild else conf.get_build_cache()
     trgt.run(cache, gdb=gdb, real_time=real_time)
 
@@ -144,6 +151,7 @@ def cmake(
     board: BoardArg,
     project: ProjectArg,
     cmake_target: Annotated[str, typer.Argument(help="The CMake target to build, e.g. 'help'", show_default=False)],
+    build_type: BuildTypeArg = BuildType.DEBUG,
     extra_build_args: ExtraBuildArgs = None,
 ) -> None:
     """Build a custom CMake target (one not provided by the pre-defined Targets), for the given board.
@@ -157,7 +165,7 @@ def cmake(
         cmake_target=cmake_target,
     )
 
-    conf: Configuration = Configuration(get_board(board), trgt)
+    conf: Configuration = Configuration(get_board(board), trgt, build_type)
     conf.build(extra_build_args)
 
 
@@ -174,6 +182,7 @@ def sca(
 def bindesc(
     board: BoardArg,
     target: TargetArg,
+    build_type: BuildTypeArg = BuildType.DEBUG,
     cmd: Annotated[str, typer.Argument(help="The command to run")] = "dump",
 ) -> None:
     """Run 'west bindesc' on the given target's binary. Defaults to 'west bindesc dump <binary>'.
@@ -184,7 +193,7 @@ def bindesc(
     """
     trgt: Target = get_target(target)
 
-    conf: Configuration = Configuration(get_board(board), trgt)
+    conf: Configuration = Configuration(get_board(board), trgt, build_type)
     cache: BuildCache = conf.get_build_cache()
 
     run_command(

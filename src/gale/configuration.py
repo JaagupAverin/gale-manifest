@@ -1,6 +1,8 @@
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from gale import log
+from gale.data.projects import SHARED_PROJECT
 from gale.data.structs import Board, BuildCache, Target
 from gale.util import CmdMode, run_command, source_environment
 
@@ -8,11 +10,18 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+class BuildType(str, Enum):
+    DEBUG = "debug"
+    RELEASE = "release"
+    SCA = "sca"
+
+
 class Configuration:
-    def __init__(self, board: Board, target: Target) -> None:
+    def __init__(self, board: Board, target: Target, build_type: BuildType) -> None:
         self.board: Board = board
         self.target: Target = target
-        self._root_build_dir: Path = self.target.parent_project.dir / "build"
+        self.build_type: BuildType = build_type
+        self._root_build_dir: Path = self.target.parent_project.dir / "build" / f"{self.board.name}_{build_type.value}"
         subdir: str = self.target.build_subdir if self.target.build_subdir else ""
         self._target_build_dir: Path = self._root_build_dir / subdir
         self._build_args_file: Path = self._target_build_dir / "build_args.txt"
@@ -34,10 +43,27 @@ class Configuration:
             log.inf(f"Build arguments file not found: {self._build_args_file}")
             return []
 
+    def _get_extra_args_for_build_type(self, build_type: BuildType) -> list[str]:
+        if build_type == BuildType.SCA:
+            codechecker_config: Path = SHARED_PROJECT.dir / "codechecker" / ".codechecker.json"
+            codechecker_args: str = f"--skip={SHARED_PROJECT.dir}/codechecker/skipfile.txt "
+            codechecker_args = codechecker_args.replace(" ", ";")  # Can't have spaces in args, semicolon is alternative
+            sca_args: list[str] = [
+                "-DZEPHYR_SCA_VARIANT=codechecker",
+                f"-DCODECHECKER_NAME={self.target.name}",
+                f"-DCODECHECKER_CONFIG_FILE={codechecker_config}",
+                f"-DCODECHECKER_ANALYZE_OPTS='{codechecker_args}'",
+                "-DCODECHECKER_PARSE_SKIP=1",
+            ]
+            return sca_args
+        return []
+
     def build(
         self,
         extra_args: list[str] | None = None,
         *,
+        pristine: bool = False,
+        cmake_only: bool = False,
         load_extra_args_from_disk: bool = False,
         save_extra_args_to_disk: bool = False,
     ) -> BuildCache:
@@ -46,7 +72,10 @@ class Configuration:
         Caches any build arguments to disk for later rebuilds (see `load_extra_args_from_disk`).
 
         Args:
-            extra_args: additional arguments to pass to 'west build';
+            extra_args: additional arguments to pass to cmake (i.e. 'west build -- <args>');
+            build_dir_suffix: suffix to append to the build directory name;
+            pristine: if set, passes the --pristine flag to 'west build';
+            cmake_only: if set, passes the --cmake-only flag to 'west build';
             load_extra_args_from_disk: if set, loads the latest cached build arguments from disk
                 (appended to `extra_args`);
             save_extra_args_to_disk: if set, saves the provided build arguments to disk for later rebuilds.
@@ -54,12 +83,13 @@ class Configuration:
         """
         source_environment(self.board.env)
 
-        if extra_args is None:
-            extra_args = []
-
         if load_extra_args_from_disk and save_extra_args_to_disk:
             msg = "Cannot load and save build arguments simultaneously; might cause the same arguments to build up."
             raise ValueError(msg)
+
+        if extra_args is None:
+            extra_args = []
+        extra_args = extra_args + self._get_extra_args_for_build_type(self.build_type)
 
         if load_extra_args_from_disk:
             extra_args = extra_args + self._load_cached_build_args()
@@ -70,6 +100,9 @@ class Configuration:
             + f" -s {self.target.parent_project.dir}"
             + f" -d {self._root_build_dir}"
             + f" -t {self.target.cmake_target}"
+            + (" --pristine" if pristine else "")
+            + (" --cmake-only" if cmake_only else "")
+            + " --"
             + f" {args}"
         )
         run_command(

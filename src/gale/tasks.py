@@ -1,4 +1,3 @@
-import code
 import shutil
 import socket
 import textwrap
@@ -6,7 +5,7 @@ import time
 from pathlib import Path
 
 from gale import log
-from gale.configuration import Configuration
+from gale.configuration import BuildType, Configuration
 from gale.data.projects import MANIFEST_PROJECT, SHARED_PROJECT, ZEPHYR_PROJECT
 from gale.data.structs import Board, BuildCache, Target
 from gale.util import CmdMode, run_command, source_environment
@@ -123,7 +122,7 @@ def _run_app_in_bsim(  # noqa: PLR0915
 
     # 4. Run application device itself:
     if gdb:
-        gdbinit: Path = SHARED_PROJECT.dir / "gdb/.gdbconf"
+        gdbinit: Path = SHARED_PROJECT.dir / "gdb" / ".gdbconf"
         # In case of debugging, we cannot attach to UART in the same terminal as gdb, so instead we
         # print out a message instructing the user to attach the UART, and wait until it is attached.
         # TODO: Can launch with gdbserver instead in the future if want to attach from IDE.
@@ -199,7 +198,7 @@ def is_localhost_port_open(port: int, timeout: float = 10.0) -> bool:
     return False
 
 
-def run_codechecker(board: Board, target: Target, *, build: bool = True) -> None:
+def run_codechecker(board: Board, target: Target) -> None:
     """Analyze the project with CodeChecker SCA.
 
     This involves:
@@ -209,23 +208,8 @@ def run_codechecker(board: Board, target: Target, *, build: bool = True) -> None
         * connecting to the server with a web browser;
     """
     # 1. Build the target with SCA enabled
-    # TODO: Re-enable cppcheck in /home/jaagup/projects/gale_ws/gale/projects/shared/codechecker/.codechecker.json
-    #       once
-    codechecker_config: Path = SHARED_PROJECT.dir / "codechecker" / ".codechecker.json"
-    codechecker_args: str = f"--skip={SHARED_PROJECT.dir}/codechecker/skipfile.txt "
-    codechecker_args = codechecker_args.replace(" ", ";")  # Can't have spaces in args, semicolon is alternative
-    sca_args: list[str] = [
-        "--",
-        "-DZEPHYR_SCA_VARIANT=codechecker",
-        f"-DCODECHECKER_NAME={target.name}",
-        f"-DCODECHECKER_CONFIG_FILE={codechecker_config}",
-        f"-DCODECHECKER_ANALYZE_OPTS='{codechecker_args}'",
-        "-DCODECHECKER_PARSE_SKIP=1",
-    ]
-    conf: Configuration = Configuration(board, target)
-    cache: BuildCache = (
-        conf.build(extra_args=sca_args, load_extra_args_from_disk=True) if build else conf.get_build_cache()
-    )
+    conf: Configuration = Configuration(board, target, build_type=BuildType.SCA)
+    cache: BuildCache = conf.build(pristine=True, load_extra_args_from_disk=True)
 
     # 2. Start the CodeChecker server
     run_command(
