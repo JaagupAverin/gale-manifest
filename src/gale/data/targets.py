@@ -1,13 +1,18 @@
 from enum import Enum
+from pathlib import Path
 from typing import override
 
 from gale import log
 from gale.data.projects import HMI_APP_PROJECT, SENSOR_APP_PROJECT
 from gale.data.structs import BuildCache, Target
-from gale.tasks import common_post_build_task, common_run_task
+from gale.tasks import task_generate_clangd_file, task_run_app_in_bsim
 
 
 class RawTarget(Target):
+    @override
+    def pre_build(self, final_build_dir: Path) -> None:
+        log.inf(f"No post-configure steps to execute for {self.name}")
+
     @override
     def post_build(self, cache: BuildCache) -> None:
         log.inf(f"No post-build steps to execute for {cache.triplet}")
@@ -21,12 +26,19 @@ class AppTarget(Target):
     """A simple application target that consists of a single executable that can be flashed/simulated/debugged/etc."""
 
     @override
+    def pre_build(self, final_build_dir: Path) -> None:
+        task_generate_clangd_file(self, final_build_dir)
+
+    @override
     def post_build(self, cache: BuildCache) -> None:
-        common_post_build_task(cache)
+        log.dbg(f"No post-build steps to execute for {cache.triplet}")
 
     @override
     def run(self, cache: BuildCache, *, gdb: bool, real_time: bool) -> None:
-        common_run_task(cache, gdb=gdb, real_time=real_time)
+        if cache.board.is_bsim:
+            task_run_app_in_bsim(cache, gdb=gdb, real_time=real_time)
+        else:
+            log.fatal("Direct running on board not yet implemented.")
 
 
 HMI_APP_TARGET = AppTarget(

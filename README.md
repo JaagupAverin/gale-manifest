@@ -104,12 +104,6 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
   - Retention storage: https://docs.zephyrproject.org/latest/services/retention/index.html
   - CRC/JSON: https://docs.zephyrproject.org/latest/services/misc.html#json
   - Utils: https://docs.zephyrproject.org/latest/doxygen/html/group__sys-util.html
-- Debugging:
-  - Remote GDB debugging: https://docs.zephyrproject.org/latest/services/debugging/gdbstub.html#gdb-stub
-  - Breakpoint-while-running: https://docs.zephyrproject.org/latest/services/debugging/debugmon.html#cortex-m-debug-monitor
-  - Runtime address inspection: https://docs.zephyrproject.org/latest/services/debugging/symtab.html
-- Misc:
-  - Code relocation: https://docs.zephyrproject.org/latest/kernel/code-relocation.html
 
 ## References:
 

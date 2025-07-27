@@ -95,6 +95,7 @@ class Configuration:
             extra_args = extra_args + self._load_cached_build_args()
         args: str = " ".join(extra_args) if extra_args else ""
 
+        self.target.pre_build(self._target_build_dir)
         build_cmd: str = (
             "west build"
             + f" -s {self.target.parent_project.dir}"

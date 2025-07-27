@@ -19,7 +19,7 @@ dependencies = [
     "typer==0.16.*",
     "structlog==25.4.*",
     "ruff==0.12.1",
-    "codechecker==6.26.*,
+    "codechecker==6.26.*",
     "basedpyright==1.30.*",
     "python-dotenv==1.1.*",
     "pyelftools>=0.29",
