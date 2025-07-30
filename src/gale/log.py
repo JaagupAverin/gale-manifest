@@ -4,13 +4,7 @@ from functools import cache
 from typing import Any, NoReturn
 
 import structlog
-from rich import pretty
-from rich.box import HORIZONTALS, Box
-from rich.console import Console, ConsoleRenderable
-from rich.highlighter import ReprHighlighter
-from rich.panel import Panel
-from rich.rule import Rule
-from rich.table import Table
+from rich.console import Console
 from rich.text import Text
 from rich.theme import Theme
 
@@ -27,28 +21,17 @@ _custom_log_themes = Theme(
     }
 )
 
-DETAILS_BOX: Box = Box(
-    """
-╭──╮\n
-    \n
-├──┤\n
-    \n
-├──┤\n
-├──┤\n
-    \n
-╰──╯\n
-""".replace("\n\n", "\n").strip()
-)
-
 
 def rule(
+    fmt_left_middle_right: str,
+    *,
     width: int,
-    tip_left: str = "╭",
-    middle: str = "─",
-    tip_right: str = "╮",
-    style: str = "rule.line",
+    style: str,
 ) -> Text:
-    rule_text = tip_left + middle * (width - 2) + tip_right
+    left = fmt_left_middle_right[0]
+    middle = fmt_left_middle_right[1]
+    right = fmt_left_middle_right[2]
+    rule_text = left + middle * (width - 2) + right
     return Text(rule_text, style=style)
 
 
@@ -83,16 +66,16 @@ def _console_printer(
     if event_dict:
         for i, (key, value) in enumerate(event_dict.items()):
             if i == 0:
-                console.print(rule(console.width, tip_left="╭", tip_right="╮", style=level))
+                console.print(rule("╭─╮", width=console.width, style=level))
 
             _key = key.replace("_", " ")
             text: str = f"[{level}] {_key}: [/][white]{value!s}[/]"
             console.print(text)
 
             if i == len(event_dict) - 1:
-                console.print(rule(console.width, tip_left="╰", tip_right="╯", style=level))
+                console.print(rule("╰─╯", width=console.width, style=level))
             else:
-                console.print(rule(console.width, tip_left="├", tip_right="┤", style=level))
+                console.print(rule("├─┤", width=console.width, style=level))
 
     return console.end_capture().strip()
 
