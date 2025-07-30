@@ -101,6 +101,7 @@ class Configuration:
             + f" -s {self.target.parent_project.dir}"
             + f" -d {self._root_build_dir}"
             + f" -t {self.target.cmake_target}"
+            + " --sysbuild"
             + (" --pristine" if pristine else "")
             + (" --cmake-only" if cmake_only else "")
             + " --"

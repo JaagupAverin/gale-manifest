@@ -224,5 +224,6 @@ if __name__ == "__main__":
     app()
 
 
+# TODO: Just reworked the log tables to be more copiable. We did this so we could copy the zpehyr.exe command and determine which UARTs are available on the nrf5340bsim board :)
 # TODO: Test more and more of the fun stuff on the README list :)
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild

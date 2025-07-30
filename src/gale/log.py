@@ -5,10 +5,13 @@ from typing import Any, NoReturn
 
 import structlog
 from rich import pretty
-from rich.box import Box
+from rich.box import HORIZONTALS, Box
 from rich.console import Console, ConsoleRenderable
 from rich.highlighter import ReprHighlighter
+from rich.panel import Panel
+from rich.rule import Rule
 from rich.table import Table
+from rich.text import Text
 from rich.theme import Theme
 
 from gale.common import is_verbose
@@ -38,6 +41,17 @@ DETAILS_BOX: Box = Box(
 )
 
 
+def rule(
+    width: int,
+    tip_left: str = "╭",
+    middle: str = "─",
+    tip_right: str = "╮",
+    style: str = "rule.line",
+) -> Text:
+    rule_text = tip_left + middle * (width - 2) + tip_right
+    return Text(rule_text, style=style)
+
+
 def _console_printer(
     _logger: structlog.types.WrappedLogger,
     _method_name: str,
@@ -63,28 +77,23 @@ def _console_printer(
         if key in event_dict:
             event_dict.pop(key)
 
-    # Format event dictionary into a Rich Table:
+    # Print out event values as a custom table:
+    # This is a custom table because we do not want padding of any kind before each row,
+    # as such padding makes the values hard to copy from the CLI.
     if event_dict:
-        table = Table(box=DETAILS_BOX, border_style=level, show_header=False, show_lines=True, expand=False)
-        table.add_column("name", justify="right", style=level, max_width=10)
-        table.add_column("value", justify="left", overflow="fold")
-        for key, value in event_dict.items():
-            key_text = key.replace("_", " ")
+        for i, (key, value) in enumerate(event_dict.items()):
+            if i == 0:
+                console.print(rule(console.width, tip_left="╭", tip_right="╮", style=level))
 
-            if isinstance(value, dict):
-                prettified_value = pretty.Pretty(
-                    value,
-                    highlighter=ReprHighlighter(),
-                    indent_guides=False,
-                    expand_all=True,
-                )
-            elif isinstance(value, ConsoleRenderable):
-                prettified_value = value
+            _key = key.replace("_", " ")
+            text: str = f"[{level}] {_key}: [/][white]{value!s}[/]"
+            console.print(text)
+
+            if i == len(event_dict) - 1:
+                console.print(rule(console.width, tip_left="╰", tip_right="╯", style=level))
             else:
-                prettified_value = str(value).strip()
-            table.add_row(key_text, prettified_value)
+                console.print(rule(console.width, tip_left="├", tip_right="┤", style=level))
 
-        console.print(table)
     return console.end_capture().strip()
 
 
