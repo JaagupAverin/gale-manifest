@@ -5,10 +5,11 @@ import typer
 
 from gale import log
 from gale.common import set_verbose
-from gale.configuration import BuildType, Configuration
+from gale.configuration import Configuration
 from gale.data.boards import get_board
 from gale.data.paths import BSIM_DIR
 from gale.data.projects import PROJECTS, ZEPHYR_PROJECT, get_project
+from gale.data.structs import BuildType
 from gale.data.targets import RawTarget, get_target
 from gale.tasks import run_codechecker
 from gale.typer_args import (
@@ -163,6 +164,7 @@ def cmake(
         name=cmake_target,
         parent_project=prj,
         cmake_target=cmake_target,
+        build_subdir="",
     )
 
     conf: Configuration = Configuration(get_board(board), trgt, build_type)
@@ -224,6 +226,5 @@ if __name__ == "__main__":
     app()
 
 
-# TODO: Just reworked the log tables to be more copiable. We did this so we could copy the zpehyr.exe command and determine which UARTs are available on the nrf5340bsim board :)
 # TODO: Test more and more of the fun stuff on the README list :)
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild

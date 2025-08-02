@@ -3,9 +3,9 @@ from typing import Annotated
 import typer
 from serial.tools.list_ports import comports
 
-from gale.configuration import BuildType
 from gale.data.boards import BoardEnum
 from gale.data.projects import ProjectEnum
+from gale.data.structs import BuildType
 from gale.data.targets import TargetEnum
 
 ProjectArg = Annotated[

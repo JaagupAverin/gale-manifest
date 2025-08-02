@@ -2,4 +2,5 @@
 .venv
 .zed
 .clangd
-projects
+.vscode
+.ruff_cache

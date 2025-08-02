@@ -11,7 +11,7 @@ from pathlib import Path
 from threading import Semaphore, Thread
 from typing import Any, Never
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 from gale import log
 from gale.data.paths import GALE_ROOT_DIR
@@ -239,7 +239,5 @@ def source_environment(env_file_path: Path) -> None:
     _latest_env_file = env_file_path
 
     load_dotenv(env_file_path)
-    # Print all environment variables containing the words "zephyr", "west", or other interesting keywords:
-    for key, value in os.environ.items():
-        if any(keyword in key.lower() for keyword in ["zephyr", "west", "board"]):
-            log.inf(f"{key}: {value}")
+    env = dotenv_values(env_file_path)
+    log.inf("Loaded environment", **env)

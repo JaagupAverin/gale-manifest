@@ -16,18 +16,17 @@ manifest:
 
   projects:
     - name: gale-sensor-app
-      path: gale/projects/sensor_app
+      path: sensor_app
     - name: gale-hmi-app
-      path: gale/projects/hmi_app
+      path: hmi_app
     - name: gale-shared
-      path: gale/projects/shared
+      path: shared
 
     - name: sdk-nrf
       path: nrf
       remote: nordic
       west-commands: scripts/west-commands.yml
       import:
-        path-prefix: gale/projects/
         path-allowlist:
           # Core dependencies:
           - zephyr

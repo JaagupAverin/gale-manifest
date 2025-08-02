@@ -1,19 +1,12 @@
-from enum import Enum
 from typing import TYPE_CHECKING
 
 from gale import log
 from gale.data.projects import SHARED_PROJECT
-from gale.data.structs import Board, BuildCache, Target
+from gale.data.structs import Board, BuildCache, BuildType, Target, get_triplet
 from gale.util import CmdMode, run_command, source_environment
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-
-class BuildType(str, Enum):
-    DEBUG = "debug"
-    RELEASE = "release"
-    SCA = "sca"
 
 
 class Configuration:
@@ -21,10 +14,10 @@ class Configuration:
         self.board: Board = board
         self.target: Target = target
         self.build_type: BuildType = build_type
-        self._root_build_dir: Path = self.target.parent_project.dir / "build" / f"{self.board.name}_{build_type.value}"
-        subdir: str = self.target.build_subdir if self.target.build_subdir else ""
-        self._target_build_dir: Path = self._root_build_dir / subdir
-        self._build_args_file: Path = self._target_build_dir / "build_args.txt"
+        self.triplet: str = get_triplet(board, target, build_type)
+        self.root_build_dir: Path = self.target.parent_project.dir / "build" / self.triplet
+        self.target_build_dir: Path = self.root_build_dir / self.target.build_subdir
+        self._build_args_file: Path = self.target_build_dir / "build_args.txt"
 
     def _save_build_args(self, build_args: list[str] | None) -> None:
         """Cache the latest build arguments for later rebuilds."""
@@ -95,11 +88,11 @@ class Configuration:
             extra_args = extra_args + self._load_cached_build_args()
         args: str = " ".join(extra_args) if extra_args else ""
 
-        self.target.pre_build(self._target_build_dir)
+        self.target.pre_build(self.target_build_dir)
         build_cmd: str = (
             "west build"
             + f" -s {self.target.parent_project.dir}"
-            + f" -d {self._root_build_dir}"
+            + f" -d {self.root_build_dir}"
             + f" -t {self.target.cmake_target}"
             + " --sysbuild"
             + (" --pristine" if pristine else "")
@@ -126,4 +119,4 @@ class Configuration:
         Target must have been built first (cache files must exist on disk), otherwise an error is raised.
         """
         source_environment(self.board.env)
-        return BuildCache(self.board, self.target, self._target_build_dir)
+        return BuildCache(self.board, self.target, self.build_type, self.target_build_dir)

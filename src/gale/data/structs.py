@@ -1,6 +1,7 @@
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 from gale import log
@@ -46,7 +47,7 @@ class Target(ABC):
     """The Project (i.e. the CMakeLists.txt file) that this target belongs to."""
     cmake_target: str
     """The name of the CMake target, as defined inside a CMakeLists.txt file somewhere."""
-    build_subdir: str | None = None
+    build_subdir: str
     """Subdirectory INSIDE the build/ directory itself; i.e. for multi-target builds like sysbuild."""
 
     @abstractmethod
@@ -60,6 +61,16 @@ class Target(ABC):
     @abstractmethod
     def run(self, cache: "BuildCache", *, gdb: bool, real_time: bool) -> None:
         """Implements running/debugging the target."""
+
+
+class BuildType(str, Enum):
+    DEBUG = "debug"
+    RELEASE = "release"
+    SCA = "sca"
+
+
+def get_triplet(board: Board, target: Target, build_type: BuildType) -> str:
+    return f"{board.name}_{target.name}_{build_type.value}"
 
 
 class CMakeCache:
@@ -115,13 +126,15 @@ class CMakeCache:
 class BuildCache:
     """Stores generated values for a target, such as devicetree, kconfig or CMake values."""
 
-    def __init__(self, board: Board, target: Target, build_dir: Path) -> None:
+    def __init__(self, board: Board, target: Target, build_type: BuildType, build_dir: Path) -> None:
         self.board: Board = board
         """Board used for generating this cache."""
         self.target: Target = target
         """Target used for generating this cache."""
-        self.triplet: str = f"{board.name}:{target.parent_project.name}:{target.name}"
-        """Uniquely identifies the build configuration: <board>:<project>:<target>."""
+        self.build_type: BuildType = build_type
+        """Build type used for generating this cache."""
+        self.triplet: str = get_triplet(board, target, build_type)
+        """Uniquely identifies the build configuration."""
         self.build_dir: Path = build_dir
         """Directory where the compile_commands.json and other build artifacts are stored."""
 

@@ -5,9 +5,11 @@ import time
 from pathlib import Path
 
 from gale import log
-from gale.configuration import BuildType, Configuration
-from gale.data.projects import MANIFEST_PROJECT, SHARED_PROJECT, ZEPHYR_PROJECT
-from gale.data.structs import Board, BuildCache, Target
+from gale.configuration import Configuration
+from gale.data.boards import NRF5340_BSIM_BOARD
+from gale.data.paths import WORKSPACE_DIR
+from gale.data.projects import SHARED_PROJECT, ZEPHYR_PROJECT
+from gale.data.structs import Board, BuildCache, BuildType, Target
 from gale.util import CmdMode, run_command, source_environment
 
 
@@ -21,7 +23,7 @@ def task_generate_clangd_file(target: Target, final_build_dir: Path) -> None:
       Remove: [-m*, -f*]
     """)
 
-    clangd_file_path = MANIFEST_PROJECT.dir / ".clangd"
+    clangd_file_path = WORKSPACE_DIR / ".clangd"
     log.inf(f"Generating .clangd file at {clangd_file_path}")
     with clangd_file_path.open("w") as file:
         file.write(clangd_file_content)
@@ -65,7 +67,7 @@ def task_run_app_in_bsim(  # noqa: PLR0915
     bsim_lib_dir: Path = bsim_build_dir / "lib"
 
     # Outputs:
-    final_dir: Path = cache.target.parent_project.dir / "bsim"
+    final_dir: Path = cache.target.parent_project.dir / "bsim" / cache.triplet
     final_bin_dir: Path = final_dir / "bin"
     final_lib_dir: Path = final_dir / "lib"
     final_results_dir: Path = final_dir / "results"
@@ -100,7 +102,16 @@ def task_run_app_in_bsim(  # noqa: PLR0915
         common_args += f" {trace_file_arg}"
 
     # Use a well-defined path for the flash binary, which is used for persistent storage of flash data:
-    simulated_flash_bin_arg: str = f"--flash={final_results_dir}/flash.bin"
+    if cache.board == NRF5340_BSIM_BOARD:
+        # This board needs to separate flash files for app and net domains:
+        simulated_flash_bin_arg: str = (
+            f"--flash_app_file={final_results_dir}/flash_app.bin"
+            + f" --flash_net_file={final_results_dir}/flash_net.bin"
+        )
+    else:
+        # Assume a single argument; although this may also vary depending on hw models;
+        simulated_flash_bin_arg = f"--flash_file={final_results_dir}/flash.bin"
+
     common_args += f" {simulated_flash_bin_arg}"
 
     # How often the handbrake triggers or "pokes" the simulation:

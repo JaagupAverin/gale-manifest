@@ -68,8 +68,7 @@ def _console_printer(
             if i == 0:
                 console.print(rule("╭─╮", width=console.width, style=level))
 
-            _key = key.replace("_", " ")
-            text: str = f"[{level}] {_key}: [/][white]{value!s}[/]"
+            text: str = f"[{level}] {key}: [/][white]{value!s}[/]"
             console.print(text)
 
             if i == len(event_dict) - 1:

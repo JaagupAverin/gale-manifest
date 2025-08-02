@@ -1,6 +1,6 @@
 from enum import Enum
 
-from gale.data.paths import GALE_ROOT_DIR, PROJECTS_DIR
+from gale.data.paths import GALE_ROOT_DIR, WORKSPACE_DIR
 from gale.data.structs import Project
 
 MANIFEST_PROJECT = Project(
@@ -11,25 +11,25 @@ MANIFEST_PROJECT = Project(
 
 SENSOR_APP_PROJECT = Project(
     name="sensor-app",
-    dir=PROJECTS_DIR / "sensor_app",
+    dir=WORKSPACE_DIR / "sensor_app",
     upstream=False,
 )
 
 HMI_APP_PROJECT = Project(
     name="hmi-app",
-    dir=PROJECTS_DIR / "hmi_app",
+    dir=WORKSPACE_DIR / "hmi_app",
     upstream=False,
 )
 
 SHARED_PROJECT = Project(
     name="shared",
-    dir=PROJECTS_DIR / "shared",
+    dir=WORKSPACE_DIR / "shared",
     upstream=False,
 )
 
 ZEPHYR_PROJECT = Project(
     name="zephyr",
-    dir=PROJECTS_DIR / "zephyr",
+    dir=WORKSPACE_DIR / "zephyr",
     upstream=True,
 )
 
