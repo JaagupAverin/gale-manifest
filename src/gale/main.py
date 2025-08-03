@@ -226,5 +226,9 @@ if __name__ == "__main__":
     app()
 
 
+# TODO: Getting sysbuild working with multiple domains. PS: look into shared;
+# https://github.com/zephyrproject-rtos/zephyr/blob/main/share/sysbuild/images/bootloader/CMakeLists.txt
+# https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/build/sysbuild/images.html
+# https://docs.nordicsemi.com/bundle/ncs-2.8.0/page/zephyr/boards/native/nrf_bsim/doc/nrf5340bsim.html
 # TODO: Test more and more of the fun stuff on the README list :)
 # BIG TODO: Get mcuboot working with flash.bin and sysbuild
