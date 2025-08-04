@@ -20,6 +20,14 @@ A Zephyr demo that shows how to set up a multi-application project with a shared
 - [nrf54L15 HW](https://docs.nordicsemi.com/bundle/ug_nrf54l15_dk/page/UG/nRF54L15_DK/intro/intro.html)
 - [native_sim](https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/boards/native/native_sim/doc/index.html)
 
+### Sysbuild
+
+- [sysbuild modules implementation](https://github.com/zephyrproject-rtos/zephyr/tree/main/share/sysbuild/cmake/modules)
+- [sysbuild architecture](https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/build/sysbuild/index.html)
+- [sysbuild images/configuration](https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/build/sysbuild/images.html)
+- [nrf sysbuild docs](https://docs.nordicsemi.com/bundle/ncs-3.0.0/page/nrf/app_dev/config_and_build/sysbuild/sysbuild_images.html)
+- [nrf forced sysbuild kconfig](https://docs.nordicsemi.com/bundle/ncs-3.0.0/page/nrf/app_dev/config_and_build/sysbuild/sysbuild_forced_options.html)
+
 ## Quickstart:
 
 Install [west](https://docs.zephyrproject.org/latest/develop/west/install.html) for Zephyr management.
