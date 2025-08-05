@@ -21,7 +21,6 @@ dependencies = [
     "ruff==0.12.1",
     "codechecker==6.26.*",
     "basedpyright==1.30.*",
-    "python-dotenv==1.1.*",
     "pyelftools>=0.29",
     "pyyaml>=6.0",
     "pykwalify>=1.8.0",

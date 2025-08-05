@@ -10,7 +10,7 @@ from gale.data.boards import NRF5340_BSIM_BOARD
 from gale.data.paths import WORKSPACE_DIR
 from gale.data.projects import SHARED_PROJECT, ZEPHYR_PROJECT
 from gale.data.structs import Board, BuildCache, BuildType, Target
-from gale.util import CmdMode, run_command, source_environment
+from gale.util import CmdMode, run_command
 
 
 def task_generate_clangd_file(target: Target, final_build_dir: Path) -> None:
@@ -55,8 +55,6 @@ def task_run_app_in_bsim(  # noqa: PLR0915
         trace_dir: if True, generated trace data into the specified directory;
             if False, trace data is still be generated, but into an unspecified directory;
     """
-    source_environment(cache.board.env)
-
     exe: Path = Path(cache.cmake_cache.exe_path)
     if not exe.exists():
         log.fatal(f"Output binary '{exe}' does not exist; use build first.")
@@ -125,7 +123,7 @@ def task_run_app_in_bsim(  # noqa: PLR0915
 
     # 4. Run application device itself:
     if gdb:
-        gdbinit: Path = SHARED_PROJECT.dir / "gdb" / ".gdbconf"
+        gdbinit: Path = SHARED_PROJECT.dir / "share" / "gdb" / ".gdbconf"
         # In case of debugging, we cannot attach to UART in the same terminal as gdb, so instead we
         # print out a message instructing the user to attach the UART, and wait until it is attached.
         # TODO: Can launch with gdbserver instead in the future if want to attach from IDE.

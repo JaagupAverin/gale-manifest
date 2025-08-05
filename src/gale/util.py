@@ -11,10 +11,9 @@ from pathlib import Path
 from threading import Semaphore, Thread
 from typing import Any, Never
 
-from dotenv import dotenv_values, load_dotenv
-
 from gale import log
 from gale.data.paths import GALE_ROOT_DIR
+from gale.data.projects import ZEPHYR_PROJECT
 
 
 def in_venv() -> bool:
@@ -229,15 +228,18 @@ def serial_monitor(*, port: str, baud: int, spawn_new_terminal: bool = False) ->
     )
 
 
-_latest_env_file: Path | None = None
+def set_os_environment_vars() -> None:
+    zephyr_dir: Path = ZEPHYR_PROJECT.dir
+    bsim_out_path: Path = ZEPHYR_PROJECT.dir / "../tools/bsim"
+    bsim_components_path: Path = bsim_out_path / "components"
 
+    os.environ["ZEPHYR_BASE"] = str(zephyr_dir.absolute())
+    os.environ["BSIM_OUT_PATH"] = str(bsim_out_path.absolute())
+    os.environ["BSIM_COMPONENTS_PATH"] = str(bsim_components_path.absolute())
 
-def source_environment(env_file_path: Path) -> None:
-    global _latest_env_file  # noqa: PLW0603
-    if env_file_path == _latest_env_file:
-        return
-    _latest_env_file = env_file_path
-
-    load_dotenv(env_file_path)
-    env = dotenv_values(env_file_path)
-    log.inf("Loaded environment", **env)
+    log.inf(
+        "Set environment variables",
+        ZEPHYR_BASE=os.environ["ZEPHYR_BASE"],
+        BSIM_OUT_PATH=os.environ["BSIM_OUT_PATH"],
+        BSIM_COMPONENTS_PATH=os.environ["BSIM_COMPONENTS_PATH"],
+    )

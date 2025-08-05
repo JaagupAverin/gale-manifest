@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from gale import log
 from gale.data.projects import SHARED_PROJECT
 from gale.data.structs import Board, BuildCache, BuildType, Target, get_triplet
-from gale.util import CmdMode, run_command, source_environment
+from gale.util import CmdMode, run_command
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -38,8 +38,8 @@ class Configuration:
 
     def _get_extra_args_for_build_type(self, build_type: BuildType) -> list[str]:
         if build_type == BuildType.SCA:
-            codechecker_config: Path = SHARED_PROJECT.dir / "codechecker" / ".codechecker.json"
-            codechecker_args: str = f"--skip={SHARED_PROJECT.dir}/codechecker/skipfile.txt "
+            codechecker_config: Path = SHARED_PROJECT.dir / "share/codechecker/.codechecker.json"
+            codechecker_args: str = f"--skip={SHARED_PROJECT.dir}/share/codechecker/skipfile.txt "
             codechecker_args = codechecker_args.replace(" ", ";")  # Can't have spaces in args, semicolon is alternative
             sca_args: list[str] = [
                 "-DZEPHYR_SCA_VARIANT=codechecker",
@@ -74,8 +74,6 @@ class Configuration:
             save_extra_args_to_disk: if set, saves the provided build arguments to disk for later rebuilds.
                 (cannot be used together with `load_extra_args_from_disk`, as this could easily cause weird issues)
         """
-        source_environment(self.board.env)
-
         if load_extra_args_from_disk and save_extra_args_to_disk:
             msg = "Cannot load and save build arguments simultaneously; might cause the same arguments to build up."
             raise ValueError(msg)
@@ -94,7 +92,8 @@ class Configuration:
             + f" -s {self.target.parent_project.dir}"
             + f" -d {self.root_build_dir}"
             + f" -t {self.target.cmake_target}"
-            + " --sysbuild"
+            + f" -b {self.board.primary_board}"
+            + " --sysbuild"  # In case of nrf-sdk, sysbuild is implied by default, but can still set explicitly.
             + (" --pristine" if pristine else "")
             + (" --cmake-only" if cmake_only else "")
             + " --"
@@ -118,5 +117,4 @@ class Configuration:
 
         Target must have been built first (cache files must exist on disk), otherwise an error is raised.
         """
-        source_environment(self.board.env)
         return BuildCache(self.board, self.target, self.build_type, self.target_build_dir)

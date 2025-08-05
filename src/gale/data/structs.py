@@ -11,15 +11,8 @@ from gale import log
 class Board:
     name: str
     """Human readable name without any semantic meaning."""
-    dir: Path
-    """The directory where the board's environment file is located."""
-
-    @property
-    def env(self) -> Path:
-        file = self.dir / "environment"
-        if not file.exists():
-            log.fatal(f"Environment file for board '{self.name}' not found", file=str(file.absolute()))
-        return file
+    primary_board: str
+    """i.e. the primary core, i.e. the cpuapp core."""
 
     @property
     def is_bsim(self) -> bool:

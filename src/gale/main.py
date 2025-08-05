@@ -1,4 +1,3 @@
-import os
 from typing import TYPE_CHECKING, Annotated
 
 import typer
@@ -8,7 +7,7 @@ from gale.common import set_verbose
 from gale.configuration import Configuration
 from gale.data.boards import get_board
 from gale.data.paths import BSIM_DIR
-from gale.data.projects import PROJECTS, ZEPHYR_PROJECT, get_project
+from gale.data.projects import PROJECTS, get_project
 from gale.data.structs import BuildType
 from gale.data.targets import RawTarget, get_target
 from gale.tasks import run_codechecker
@@ -26,7 +25,14 @@ from gale.typer_args import (
     RebuildArg,
     TargetArg,
 )
-from gale.util import CmdMode, in_venv, install_system_packages, run_command, serial_monitor
+from gale.util import (
+    CmdMode,
+    in_venv,
+    install_system_packages,
+    run_command,
+    serial_monitor,
+    set_os_environment_vars,
+)
 
 if TYPE_CHECKING:
     from gale.data.structs import BuildCache, Project, Target
@@ -56,7 +62,7 @@ def gale(
     if verbose:
         set_verbose(True)
 
-    os.environ["ZEPHYR_BASE"] = str(ZEPHYR_PROJECT.dir.absolute())
+    set_os_environment_vars()
 
     if not in_venv():
         log.fatal("This tool must be run from within a virtual environment; create and activate .venv as per README!")
