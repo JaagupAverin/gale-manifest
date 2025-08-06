@@ -128,7 +128,11 @@ def task_run_app_in_bsim(  # noqa: PLR0915
         # print out a message instructing the user to attach the UART, and wait until it is attached.
         # TODO: Can launch with gdbserver instead in the future if want to attach from IDE.
         uart_attach_cmd: str = r"echo App\ halted\ until\ UART\ attached!\ Use:\ gale\ monitor\ --port\ %s"
-        uart_args = f'--uart_pty_wait --uart1_pty_attach_cmd="{uart_attach_cmd}"'
+        uart_args = (
+            "--uart_pty_wait"
+            + f' --uart0_pty_attach_cmd="{uart_attach_cmd}"'
+            + f' --uart1_pty_attach_cmd="{uart_attach_cmd}"'
+        )
         app_run_cmd: str = (
             f"{cache.cmake_cache.gdb} --tui -x {gdbinit} --args "
             f"{final_exe} -s={sim_id} -d={num_devices} {uart_args} {common_args}"
@@ -143,7 +147,12 @@ def task_run_app_in_bsim(  # noqa: PLR0915
     else:
         # In case of running directly, attach the UART immediately:
         uart_attach_cmd = "gale monitor --port %s --new-terminal"
-        uart_args = f'--uart_pty_wait --uart1_pty_attach_cmd="{uart_attach_cmd}"'
+        uart_args = (
+            "--uart_pty_wait"
+            + f' --uart0_pty_attach_cmd="{uart_attach_cmd}"'
+            + f' --uart1_pty_attach_cmd="{uart_attach_cmd}"'
+        )
+
         app_run_cmd = f"{final_exe} -s={sim_id} -d={num_devices} {uart_args} {common_args}"
         num_devices += 1
         run_command(
