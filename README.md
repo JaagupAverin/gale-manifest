@@ -117,6 +117,7 @@ gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
 ## References:
 
 - DTS bindings: https://docs.zephyrproject.org/latest/build/dts/api/bindings.html
+- DTS API: https://docs.zephyrproject.org/latest/build/dts/api/api.html
 - KConfig: https://docs.zephyrproject.org/latest/kconfig.html
 - HALs: https://docs.zephyrproject.org/latest/develop/manifest/index.html
 

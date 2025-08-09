@@ -5,7 +5,7 @@ from typing import override
 from gale import log
 from gale.data.projects import HMI_APP_PROJECT, SENSOR_APP_PROJECT
 from gale.data.structs import BuildCache, Target
-from gale.tasks import task_generate_clangd_file, task_run_app_in_bsim
+from gale.tasks import task_run_app_in_bsim
 
 
 class RawTarget(Target):
@@ -27,7 +27,7 @@ class AppTarget(Target):
 
     @override
     def pre_build(self, root_build_dir: Path) -> None:
-        task_generate_clangd_file(root_build_dir)
+        log.dbg(f"No pre-build steps to execute for {self.name}")
 
     @override
     def post_build(self, cache: BuildCache) -> None:
