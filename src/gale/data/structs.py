@@ -44,7 +44,7 @@ class Target(ABC):
     """Subdirectory INSIDE the build/ directory itself; i.e. for multi-target builds like sysbuild."""
 
     @abstractmethod
-    def pre_build(self, final_build_dir: Path) -> None:
+    def pre_build(self, root_build_dir: Path) -> None:
         """Implements arbitrary optional steps before the target is built."""
 
     @abstractmethod

@@ -10,7 +10,7 @@ from gale.tasks import task_generate_clangd_file, task_run_app_in_bsim
 
 class RawTarget(Target):
     @override
-    def pre_build(self, final_build_dir: Path) -> None:
+    def pre_build(self, root_build_dir: Path) -> None:
         log.inf(f"No post-configure steps to execute for {self.name}")
 
     @override
@@ -26,8 +26,8 @@ class AppTarget(Target):
     """A simple application target that consists of a single executable that can be flashed/simulated/debugged/etc."""
 
     @override
-    def pre_build(self, final_build_dir: Path) -> None:
-        task_generate_clangd_file(self, final_build_dir)
+    def pre_build(self, root_build_dir: Path) -> None:
+        task_generate_clangd_file(root_build_dir)
 
     @override
     def post_build(self, cache: BuildCache) -> None:

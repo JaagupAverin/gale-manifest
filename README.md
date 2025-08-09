@@ -74,44 +74,45 @@ e.g. for simulating an application:
 gale run --board nrf54l15bsim --target hmi_app --real-time --rebuild
 ```
 
-## Notable Zephyr features:
+## Some used Zephyr features:
 
-- Use of `CONFIG_ASAN=y` and `CONFIG_UBSAN=y`
-- Use of `CONFIG_TRACING=y`
-- Use of `CONFIG_FLASH_SIMULATOR=y` and `CONFIG_FUSE_FS_ACCESS=y`
-- Use of `VERSION` file
-- Use of C++20 and stdlib
-- Use of littlefs with devicetree-based automounting (using fstab node)
-- Use of BabbleSim for running apps on host machine
-- Use of binary descriptors for storing data accessible both from the application and the build system
-- Use of SCA (CodeChecker)
+- `CONFIG_ASAN=y` and `CONFIG_UBSAN=y`
+- `CONFIG_TRACING=y`
+- `CONFIG_FLASH_SIMULATOR=y` and `CONFIG_FUSE_FS_ACCESS=y`
+- `VERSION` file
+- C++20 and stdlib
+- Littlefs with devicetree-based automounting (using fstab node)
+- BabbleSim for running apps on host machine
+- Binary descriptors for storing data accessible both from the application and the build system
+- SCA (CodeChecker)
+- Sysbuild to conditionally build multiple applications
+
+## Some useful tricks for future reference:
+
+- `set_source_files_properties(<generate_file.c> PROPERTIES GENERATED TRUE)`
+- [Retention storage](https://docs.zephyrproject.org/latest/services/retention/index.html)
+- [FCB for circular buffer on flash](https://docs.zephyrproject.org/latest/services/storage/fcb/fcb.html)
 
 ## Appendix
 
 # Zephyr features still to review:
 
-## Tooling:
-
-- Use sysbuild for multi-target project: https://docs.zephyrproject.org/latest/build/sysbuild/index.html#adding-zephyr-applications-to-sysbuild
-
 ## Testing:
 
 - ZTest for unit testing: https://docs.zephyrproject.org/latest/develop/sca/index.html
-- Advanced testing with:
-  - Test runner: https://docs.zephyrproject.org/latest/develop/test/twister.html
+- Twister: https://docs.zephyrproject.org/latest/develop/test/twister.html
 
 ## Features:
 
 - Functionality:
-  - Zbus (inter-thread communication channel): https://docs.zephyrproject.org/latest/services/zbus/index.html
-  - Reference-counting On/Off manager: https://docs.zephyrproject.org/latest/services/resource_management/index.html
-  - Async notifications: https://docs.zephyrproject.org/latest/services/notify.html
-  - State machine skeleton: https://docs.zephyrproject.org/latest/services/smf/index.html#overview
-  - Settings: https://docs.zephyrproject.org/latest/services/storage/settings/index.html
-  - Task watchdog: https://docs.zephyrproject.org/latest/services/task_wdt/index.html
-  - Retention storage: https://docs.zephyrproject.org/latest/services/retention/index.html
-  - CRC/JSON: https://docs.zephyrproject.org/latest/services/misc.html#json
-  - Utils: https://docs.zephyrproject.org/latest/doxygen/html/group__sys-util.html
+    - Zbus (inter-thread communication channel): https://docs.zephyrproject.org/latest/services/zbus/index.html
+    - Reference-counting On/Off manager: https://docs.zephyrproject.org/latest/services/resource_management/index.html
+    - Async notifications: https://docs.zephyrproject.org/latest/services/notify.html
+    - Settings: https://docs.zephyrproject.org/latest/services/storage/settings/index.html
+    - Task watchdog: https://docs.zephyrproject.org/latest/services/task_wdt/index.html
+    - NVS/ZMS: https://docs.zephyrproject.org/latest/services/storage/zms/zms.html
+    - CRC/JSON: https://docs.zephyrproject.org/latest/services/misc.html#json
+    - Utils: https://docs.zephyrproject.org/latest/doxygen/html/group__sys-util.html
 
 ## References:
 
