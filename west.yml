@@ -33,6 +33,8 @@ manifest:
           - nrfxlib
           - hal/nordic
           - cmsis_6
+          - libmetal
+          - open-amp
           # Optional dependencies:
           - mcuboot
           - littlefs
